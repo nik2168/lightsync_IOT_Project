@@ -4,15 +4,16 @@ import { View, Text, TouchableOpacity } from "react-native";
 type SelectCompProps = {
   label: string;
   required?: boolean;
-  options: string[];
-  selectedValue: string;
-  onSelect: (value: string) => void;
+  options: any[]; // Better to type this as OptionType[]
+  selectedValue: any; // Better to type this as OptionType | null
+  onSelect: (value: any) => void; // Change from string to any or OptionType
   containerClassName?: string;
   optionClassName?: string;
   selectedOptionClassName?: string;
   labelClassName?: string;
   textClassName?: string;
   selectedTextClassName?: string;
+  itemBgColor?: string;
 };
 
 export const SelectComp: React.FC<SelectCompProps> = ({
@@ -21,6 +22,7 @@ export const SelectComp: React.FC<SelectCompProps> = ({
   options,
   selectedValue,
   onSelect,
+  itemBgColor = "bg-circle",
 }) => {
   return (
     <View className="flex w-full justify-between  items-left ">
@@ -28,13 +30,13 @@ export const SelectComp: React.FC<SelectCompProps> = ({
         {label} {required && <Text className="text-red-500">*</Text>}
       </Text>
       <View className="flex-row flex-wrap gap-2 mb-4">
-        {options.map((type) => (
+        {options?.map((type: any) => (
           <TouchableOpacity
-            key={type}
-            className={`border px-2 py-1  justify-center items-center rounded-md ${
-              type === selectedValue
+            key={type?.id}
+            className={`border px-2 py-1   justify-center items-center rounded-md ${
+              type.id === selectedValue?.id
                 ? "bg-primary border-primary"
-                : "border-medium bg-circle "
+                : "border-medium " + itemBgColor
             }`}
             onPress={() =>
               //   dispatch(updateField({ field: "broadcastType", value: type }))
@@ -43,12 +45,12 @@ export const SelectComp: React.FC<SelectCompProps> = ({
           >
             <Text
               className={`text-sm ${
-                selectedValue === type
+                selectedValue?.id === type?.id
                   ? "text-dark-text font-medium"
                   : "text-medium"
               }`}
             >
-              {type}
+              {type?.name}
             </Text>
           </TouchableOpacity>
         ))}

@@ -24,10 +24,18 @@ export default function RootLayout() {
     <Provider store={store}>
       <GestureHandlerRootView style={{ flex: 1 }}>
         <Stack>
-          <Stack.Screen name="(protected)" options={{ headerShown: false }} />
+          {/* <Stack.Screen name="(protected)" options={{ headerShown: false }} /> */}
 
           <Stack.Screen
             name="index"
+            options={{
+              headerShown: false,
+              animation: "slide_from_right",
+              gestureEnabled: true,
+            }}
+          />
+          <Stack.Screen
+            name="anchorbooking"
             options={{
               headerShown: false,
               animation: "slide_from_right",

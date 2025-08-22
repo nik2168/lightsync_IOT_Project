@@ -3,6 +3,8 @@
 Native wind setup install :
 npx create-expo-app -e with-router-tailwind
 
+https://github.com/nik2168/Expo_ReactNative_With_Nativewind_Template.git
+
 This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
 
 ## Get started

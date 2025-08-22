@@ -16,20 +16,17 @@ import ButtonComp from "@/components/custom/shared/Button";
 import { MaterialIcons } from "@expo/vector-icons";
 import { Colors } from "@/constants/Colors";
 import Circles from "@/components/custom/shared/circles";
-import { useRouter } from "expo-router";
 
 type OptionType = {
   id: number;
   name: string;
 };
 
-export default function HomePage() {
+export default function Page() {
   const [topic, setTopic] = useState("");
   const [location, setLocation] = useState("Chennai");
   const [channel, setChannel] = useState("");
   const [purpose, setPurpose] = useState("");
-
-  const router = useRouter();
 
   // Date & Time States
   const [date, setDate] = useState(new Date());
@@ -65,7 +62,7 @@ export default function HomePage() {
 
   return (
     <SafeAreaView className="flex-1 bg-light-background">
-      <DefaultCustomHeader title="Anchor Profile" floating />
+      <DefaultCustomHeader title="Anchor booking" floating />
       <Circles />
 
       <ScrollView className="px-4 mt-[5rem]">

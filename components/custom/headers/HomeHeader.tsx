@@ -55,7 +55,7 @@ const HomeHeader = ({
         }  flex-row gap-[10]  items-center justify-between px-[20]`}
       >
         <TouchableOpacity
-          onPress={() => router.push("/notfound")}
+          onPress={() => router.push("/otpverification")}
           className="flex flex-row"
         >
           <Image
