@@ -1,250 +1,221 @@
-import DefaultCustomHeader from "@/components/custom/headers/DefaultCustomHeader";
 import React, { useState } from "react";
 import {
   View,
   Text,
-  ScrollView,
-  SafeAreaView,
   TouchableOpacity,
+  Switch,
+  StatusBar,
+  SafeAreaView,
   Image,
-  Platform,
 } from "react-native";
-import DateTimePicker from "@react-native-community/datetimepicker";
-import InputComp from "@/components/custom/shared/Input";
-import { SelectComp } from "@/components/custom/shared/SelectComp";
-import ButtonComp from "@/components/custom/shared/Button";
-import { MaterialIcons } from "@expo/vector-icons";
-import { Colors } from "@/constants/Colors";
-import Circles from "@/components/custom/shared/circles";
-import { useRouter } from "expo-router";
+import {
+  Ionicons,
+  MaterialIcons,
+  Feather,
+  MaterialCommunityIcons,
+} from "@expo/vector-icons";
 
-type OptionType = {
-  id: number;
-  name: string;
-};
+export default function SmartHomeScreen() {
+  const [acOn, setAcOn] = useState(true);
+  const [temperature, setTemperature] = useState(26.6);
+  const [lampOn, setLampOn] = useState(true);
+  const [lampBrightness, setLampBrightness] = useState(80);
+  const [lamp2On, setLamp2On] = useState(false);
+  const [speakerVolume, setSpeakerVolume] = useState(60);
+  const [selectedMode, setSelectedMode] = useState("All");
 
-export default function HomePage() {
-  const [topic, setTopic] = useState("");
-  const [location, setLocation] = useState("Chennai");
-  const [channel, setChannel] = useState("");
-  const [purpose, setPurpose] = useState("");
-
-  const router = useRouter();
-
-  // Date & Time States
-  const [date, setDate] = useState(new Date());
-  const [showDatePicker, setShowDatePicker] = useState(false);
-  const [isTopicFocused, setIsTopicFocused] = useState(false);
-  const [isLocationFocused, setIsLocationFocused] = useState(false);
-
-  const [time, setTime] = useState(new Date());
-  const [showTimePicker, setShowTimePicker] = useState(false);
-
-  const onChangeDate = (_: any, selectedDate?: Date) => {
-    if (selectedDate) setDate(selectedDate);
-    setShowDatePicker(Platform.OS === "ios");
-  };
-
-  const onChangeTime = (_: any, selectedTime?: Date) => {
-    if (selectedTime) setTime(selectedTime);
-    setShowTimePicker(Platform.OS === "ios");
-  };
-
-  const channelOptions: OptionType[] = [
-    { id: 1, name: "Brand Awareness" },
-    { id: 2, name: "Product Launch" },
-    { id: 3, name: "Others" },
+  const modes = [
+    { name: "All", icon: "apps" },
+    { name: "Print", icon: "print" },
+    { name: "Car", icon: "directions-car" },
   ];
 
-  const purposeOptions = [
-    { id: 1, name: "Interview" },
-    { id: 2, name: "Discussion" },
-    { id: 3, name: "Event hosting" },
-    { id: 4, name: "Promotion" },
-  ];
+  const controlModes = ["Mode", "Air", "Sleep", "Time"];
+
+  const adjustTemperature = (increment: any) => {
+    setTemperature((prev) => Math.max(16, Math.min(30, prev + increment)));
+  };
 
   return (
-    <SafeAreaView className="flex-1 bg-light-background">
-      <DefaultCustomHeader title="Anchor Profile" floating />
-      <Circles />
+    <SafeAreaView className="flex-1 bg-white py-10">
+      <StatusBar barStyle="dark-content" backgroundColor="#f9fafb" />
 
-      <ScrollView className="px-4 mt-[5rem]">
-        <Text className="font-medium my-3 text-md text-mediumDark">
-          Selected Anchor / Influencer
-        </Text>
-        <View className="flex-row justify-between items-center">
-          <View className="flex-row items-center gap-3">
-            <Image
-              source={{ uri: "https://randomuser.me/api/portraits/men/32.jpg" }}
-              className="w-[72px] h-[72px] rounded-lg"
-            />
-            <View className="flex-col justify-center items-left gap-1">
-              <View className="flex-row items-center">
-                <Text className="font-semibold text-md text-mediumDark">
-                  Priya Deshmukh
-                </Text>
-                <MaterialIcons
-                  name="verified"
-                  size={18}
-                  color={Colors.green}
-                  style={{ marginLeft: 4 }}
-                />
-              </View>
-              <Text className="font-semibold text-sm text-mediumDark">
-                $90 - $200
-              </Text>
-              <View className="flex-col gap-1">
-                <Text className="font-medium text-[10px] text-mediumDark ml-1">
-                  85 User Stories
-                </Text>
-                <View className="flex-row">
-                  <MaterialIcons name="star" size={16} color="gold" />
-                  <MaterialIcons name="star" size={16} color="gold" />
-                  <MaterialIcons name="star" size={16} color="gold" />
-                  <MaterialIcons name="star" size={16} color="gold" />
-                  <MaterialIcons name="star-half" size={16} color="gold" />
-                </View>
-              </View>
-            </View>
-          </View>
-
-          <TouchableOpacity className="bg-primary rounded-[10px] py-[8px] px-[23px]">
-            <Text className="font-medium text-sm text-light-background">
-              Change
-            </Text>
+      {/* Header */}
+      <View className="flex-row justify-between items-center px-6 py-4 ">
+        <View>
+          <Text className="text-gray-500 text-md">Hello, Nik</Text>
+          <Text className="text-black text-2xl ">
+            {(() => {
+              const now = new Date();
+              const hours = now.getHours();
+              if (hours < 12) {
+                return "Good Morning";
+              } else if (hours < 17) {
+                return "Good Afternoon";
+              } else {
+                return "Good Evening";
+              }
+            })()}
+          </Text>
+        </View>
+        <View className="flex-row items-center gap-2 bg-gray-200 p-2 rounded-full">
+          <TouchableOpacity className="p-2 bg-white rounded-full">
+            <Ionicons name="menu" size={24} color="#000" />
+          </TouchableOpacity>
+          <TouchableOpacity className="p-2 bg-white rounded-full">
+            <Ionicons name="notifications-outline" size={24} color="#000" />
           </TouchableOpacity>
         </View>
+      </View>
 
-        {/* Booking Information */}
-        <Text className="my-6 font-semibold text-base text-darkGrey">
-          Booking information
-        </Text>
+      {/* Control Modes */}
+      <View className="flex-row px-6 justify-between">
+        {controlModes.map((mode, index) => (
+          <TouchableOpacity
+            key={mode}
+            className="items-center p-1 px-3 bg-gray-100 rounded-lg"
+          >
+            <View className="w-10 h-10 items-center justify-center">
+              {mode === "Mode" && (
+                <MaterialIcons name="tune" size={20} color="#666" />
+              )}
+              {mode === "Air" && <Feather name="wind" size={20} color="#666" />}
+              {mode === "Sleep" && (
+                <Ionicons name="moon" size={20} color="#666" />
+              )}
+              {mode === "Time" && (
+                <Ionicons name="time" size={20} color="#666" />
+              )}
+            </View>
+            <Text className="text-gray-600 text-xs">{mode}</Text>
+          </TouchableOpacity>
+        ))}
+      </View>
 
-        <SelectComp
-          label="Channel/platform"
-          options={channelOptions}
-          selectedValue={channel}
-          onSelect={setChannel}
-          itemBgColor="bg-light-background"
-        />
+      {/* <View className="flex-col justify-center items-left my-3">
+        <Text className="text-3xl font-semibold px-6">LightSync </Text>
+        {/* <Text className="text-3xl font-semibold px-6">Automation </Text> */}
+      {/* <Text className="text-xs my-2 px-6">IOT PROJECT DASHBOARD</Text> */}
+      {/* </View>  */}
 
-        <SelectComp
-          label="Purpose of booking"
-          options={purposeOptions}
-          selectedValue={purpose}
-          onSelect={setPurpose}
-          itemBgColor="bg-light-background"
-        />
-
-        {/* Date and Time */}
-        <View className="flex-row gap-4 mb-4">
-          <View className="flex-1">
-            <Text className="font-medium text-sm text-mediumDark mb-2">
-              Date
-            </Text>
-            <TouchableOpacity
-              onPress={() => setShowDatePicker(true)}
-              className="flex-row items-center h-10 px-3 rounded-lg border border-medium bg-circle"
-            >
-              <MaterialIcons
-                name="calendar-today"
-                size={16}
-                color={Colors.darkGrey}
-              />
-              <Text className="ml-2 font-semibold text-xs text-darkGrey">
-                {date.toLocaleDateString()}
-              </Text>
-            </TouchableOpacity>
-            {showDatePicker && (
-              <DateTimePicker
-                value={date}
-                mode="date"
-                display="default"
-                onChange={onChangeDate}
-              />
-            )}
+      <View className="px-6 gap-6 mt-[2rem]">
+        {/* Air Conditioner Card */}
+        <View className="bg-gray-200 rounded-3xl p-6">
+          <View className="flex-row justify-between items-center mb-4">
+            <View>
+              <Text className="text-black text-xl">Temperature</Text>
+              <Text className="text-gray-600 text-sm">Living room</Text>
+            </View>
+            <Switch
+              value={acOn}
+              onValueChange={setAcOn}
+              trackColor={{ false: "#d1d5db", true: "#3B82F6" }}
+              thumbColor={acOn ? "#ffffff" : "#ffffff"}
+            />
           </View>
 
-          <View className="flex-1">
-            <Text className="font-medium text-sm text-mediumDark mb-2">
-              Time
-            </Text>
-            <TouchableOpacity
-              onPress={() => setShowTimePicker(true)}
-              className="flex-row items-center h-10 px-3 rounded-lg border border-medium bg-light-background"
+          <View className="flex-row justify-between items-center mb-6">
+            {/* <TouchableOpacity
+              onPress={() => adjustTemperature(-0.1)}
+              className="w-12 h-12 border border-gray-500 rounded-full items-center justify-center"
             >
-              <MaterialIcons
-                name="access-time"
-                size={16}
-                color={Colors.medium}
-              />
-              <Text className="ml-2 font-semibold text-xs text-darkGrey">
-                {time.toLocaleTimeString([], {
-                  hour: "2-digit",
-                  minute: "2-digit",
-                })}
+              <Ionicons name="remove" size={20} color="#666" />
+            </TouchableOpacity> */}
+            <View className="items-center mb-6 w-full">
+              <View className="flex-row items-center mb-2">
+                <Ionicons name="water" size={18} color="#3B82F6" />
+                <Text className="text-gray-600 text-sm"> 78%</Text>
+              </View>
+              <Text className="text-6xl font-medium text-black">
+                {temperature}°
               </Text>
-            </TouchableOpacity>
-            {showTimePicker && (
-              <DateTimePicker
-                value={time}
-                mode="time"
-                is24Hour
-                display="default"
-                onChange={onChangeTime}
-              />
-            )}
+            </View>
+            {/* <TouchableOpacity
+              onPress={() => adjustTemperature(0.1)}
+              className="w-12 h-12 border border-gray-500 rounded-full items-center justify-center"
+            >
+              <Ionicons name="add" size={20} color="#666" />
+            </TouchableOpacity> */}
           </View>
         </View>
 
-        <View className="my-4">
-          {/* Topic */}
-          {/* <InputComp
-            Label="Topic"
-            text={topic}
-            setText={setTopic}
-            isFocused={false}
-            setIsFocused={() => {}}
-            isPassword={false}
-            showPassword={false}
-            setShowPassword={() => {}}
-            keyboardType="default"
-          /> */}
-          <InputComp
-            Label="Topic"
-            text={topic}
-            setText={setTopic}
-            isFocused={isTopicFocused}
-            setIsFocused={setIsTopicFocused}
-            isPassword={false}
-            showPassword={false}
-            setShowPassword={() => {}}
-            keyboardType="default"
-          />
+        {/* Lamp and Speaker Row */}
+        <View className="flex-row gap-4 p-4 bg-gray-200 rounded-3xl">
+          {/* Lamp Card */}
+          <View className=" bg-white rounded-2xl flex justify-between p-4 h-[10rem] flex-1">
+            <View>
+              <Text className="text-black font-semibold mb-1">Lamp 1</Text>
+              <Text className="text-gray-500 text-xs mb-4">Living room</Text>
+            </View>
+
+            <View className="w-12 h-12 absolute top-4 right-4 items-center justify-center">
+              <MaterialCommunityIcons
+                name={lampOn ? "lightbulb-on-outline" : "lightbulb-outline"}
+                size={45}
+                color={lampOn ? "#3B82F6" : "#d1d5db"}
+              />
+            </View>
+
+            <View className="flex-row items-center justify-between">
+              <Switch
+                value={lampOn}
+                onValueChange={setLampOn}
+                trackColor={{ false: "#d1d5db", true: "#3B82F6" }}
+                thumbColor="#ffffff"
+                style={{ transform: [{ scaleX: 0.8 }, { scaleY: 0.8 }] }}
+              />
+              <Text className="text-black font-medium">{lampBrightness}%</Text>
+            </View>
+          </View>
+          {/* Lamp Card */}
+          <View className=" bg-white rounded-2xl flex justify-between p-4 h-[10rem] flex-1">
+            <View>
+              <Text className="text-black font-semibold mb-1">Lamp 2</Text>
+              <Text className="text-gray-500 text-xs mb-4">Kitchen</Text>
+            </View>
+
+            <View className="w-12 h-12 absolute top-4 right-4 items-center justify-center">
+              <MaterialCommunityIcons
+                name={lamp2On ? "lightbulb-on-outline" : "lightbulb-outline"}
+                size={45}
+                color={lamp2On ? "#3B82F6" : "#d1d5db"}
+              />
+            </View>
+
+            <View className="flex-row items-center justify-between">
+              <Switch
+                value={lamp2On}
+                onValueChange={setLamp2On}
+                trackColor={{ false: "#d1d5db", true: "#3B82F6" }}
+                thumbColor="#ffffff"
+                style={{ transform: [{ scaleX: 0.8 }, { scaleY: 0.8 }] }}
+              />
+              <Text className="text-black font-medium">{lampBrightness}%</Text>
+            </View>
+          </View>
         </View>
 
-        <View>
-          {/* Location */}
-          <InputComp
-            Label="Location"
-            text={location}
-            setText={setLocation}
-            isFocused={isLocationFocused}
-            setIsFocused={setIsLocationFocused}
-            isPassword={false}
-            showPassword={false}
-            setShowPassword={() => {}}
-            keyboardType="default"
-          />
+        {/* Create Scene Card */}
+        <View className="bg-white rounded-2xl">
+          <View className="flex-row items-center bg-gray-200 rounded-full px-2 py-2 justify-between">
+            <View className="flex-row items-center justify-center">
+              <TouchableOpacity className="w-12 h-12 bg-white rounded-full items-center justify-center">
+                <Ionicons name="alert" size={20} color="#666" />
+              </TouchableOpacity>
+              <View className="flex-col justify-center items-left ml-3 gap-1 mb-1">
+                <Text className="text-black font-semibold">
+                  Motion detected !
+                </Text>
+                <Text className="text-gray-500 text-xs">
+                  In Living room at 12:30 AM !
+                </Text>
+              </View>
+            </View>
+            <TouchableOpacity className="bg-blue-500 px-4 py-2 mr-2 rounded-full">
+              <Text className="text-white text-sm font-medium">See All</Text>
+            </TouchableOpacity>
+          </View>
         </View>
-      </ScrollView>
-
-      {/* Pay Now Button */}
-      <View className="p-4 bg-light-background">
-        <ButtonComp
-          text="Pay now"
-          onClick={() => console.log("Pay now button pressed!")}
-        />
       </View>
     </SafeAreaView>
   );
