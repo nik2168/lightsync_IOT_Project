@@ -1,14 +1,15 @@
 // layout.tsx or RootLayout.tsx
-import React from "react";
+import { store } from "@/redux/store"; // adjust the path to your store
 import { useFonts } from "expo-font";
 import { Stack } from "expo-router";
+import React from "react";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { Provider } from "react-redux";
-import { store } from "@/redux/store"; // adjust the path to your store
 
+import { useColorScheme } from "@/hooks/useColorScheme";
+import SocketInit from "@/redux/socketContext";
 import "react-native-reanimated";
 import "../global.css";
-import { useColorScheme } from "@/hooks/useColorScheme";
 
 export default function RootLayout() {
   const colorScheme = useColorScheme();
@@ -23,25 +24,27 @@ export default function RootLayout() {
   return (
     <Provider store={store}>
       <GestureHandlerRootView style={{ flex: 1 }}>
-        <Stack>
-          <Stack.Screen
-            name="index"
-            options={{
-              headerShown: false,
-              animation: "slide_from_right",
-              gestureEnabled: true,
-            }}
-          />
+        <SocketInit>
+          <Stack>
+            <Stack.Screen
+              name="index"
+              options={{
+                headerShown: false,
+                animation: "slide_from_right",
+                gestureEnabled: true,
+              }}
+            />
 
-          <Stack.Screen
-            name="motionalerts"
-            options={{
-              headerShown: false,
-              animation: "slide_from_right",
-              gestureEnabled: true,
-            }}
-          />
-        </Stack>
+            <Stack.Screen
+              name="motionalerts"
+              options={{
+                headerShown: false,
+                animation: "slide_from_right",
+                gestureEnabled: true,
+              }}
+            />
+          </Stack>
+        </SocketInit>
       </GestureHandlerRootView>
     </Provider>
   );
