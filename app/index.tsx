@@ -13,6 +13,7 @@ import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import { getSocket } from "@/redux/socket";
+import * as Updates from "expo-updates";
 
 export default function SmartHomeScreen() {
   const [temperature, setTemperature] = useState(26.6);
@@ -89,9 +90,29 @@ export default function SmartHomeScreen() {
     // setAllLightsState(newState); // Optimistic update
   };
 
+  const [isUpdateAvailable, setIsUpdateAvailable] = useState(false);
+
+  // check for updates
+  useEffect(() => {
+    const checkUpdates = async () => {
+      try {
+        const update = await Updates.checkForUpdateAsync();
+        if (update.isAvailable) {
+          setIsUpdateAvailable(true);
+        }
+      } catch (e) {
+        console.log("Error checking updates", e);
+      }
+    };
+    checkUpdates();
+  }, []);
+
   return (
     <View className="flex-1 bg-white">
       <StatusBar barStyle="dark-content" backgroundColor="#f9fafb" />
+
+      {/* New update prompt */}
+      <UpdatePrompt isVisible={isUpdateAvailable} />
 
       {/* Fading Background */}
       <ImageBackground
@@ -362,6 +383,32 @@ export default function SmartHomeScreen() {
           </ScrollView>
         </LinearGradient>
       </ImageBackground>
+    </View>
+  );
+}
+
+function UpdatePrompt({ isVisible }: { isVisible: boolean }) {
+  if (!isVisible) return null;
+
+  return (
+    <View className="absolute bottom-[7rem] w-full px-4">
+      <View className="bg-circle rounded-2xl border-[1px] border-medium shadow-lg p-4 flex-row justify-between items-center">
+        <Text className="text-base font-semibold">
+          A new update is available 🎉
+        </Text>
+        <TouchableOpacity
+          onPress={async () => {
+            try {
+              await Updates.fetchUpdateAsync();
+              await Updates.reloadAsync();
+            } catch (e) {
+              console.log("Update failed", e);
+            }
+          }}
+        >
+          <Text className="text-primary font-semibold text-md">Update</Text>
+        </TouchableOpacity>
+      </View>
     </View>
   );
 }
