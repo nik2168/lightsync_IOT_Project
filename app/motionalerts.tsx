@@ -1,5 +1,4 @@
-// app/motionalerts.js
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import {
   View,
   Text,
@@ -10,29 +9,69 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { BarChart } from "react-native-gifted-charts";
+import { useSearchParams } from "expo-router/build/hooks";
+type BarData = {
+  value: number;
+  label: string;
+};
+
+interface Alert {
+  id: string;
+  location: string;
+  time: string;
+}
 
 export default function MotionAlertsScreen() {
   const router = useRouter();
+  const params = useSearchParams();
 
-  // Example motion alerts
-  const [alerts] = useState([
-    { id: "1", location: "Living Room", time: "12:30 AM" },
-    { id: "2", location: "Kitchen", time: "01:15 AM" },
-    { id: "3", location: "Bedroom", time: "02:40 AM" },
-    { id: "4", location: "Living Room", time: "06:10 AM" },
-    { id: "5", location: "Garage", time: "08:25 AM" },
-  ]);
+  const [alerts, setAlerts] = useState<Alert[]>(() => {
+    try {
+      const alertsParam = params.get
+        ? params.get("alerts")
+        : (params as any).alerts;
+      return alertsParam ? (JSON.parse(alertsParam) as Alert[]) : [];
+    } catch {
+      return [];
+    }
+  });
 
-  // Example chart data (frequency of alerts per hour)
-  const chartData = [
-    { value: 2, label: "12AM" },
-    { value: 1, label: "1AM" },
-    { value: 1, label: "2AM" },
-    { value: 0, label: "3AM" },
-    { value: 0, label: "4AM" },
-    { value: 1, label: "6AM" },
-    { value: 1, label: "8AM" },
-  ];
+  const chartData: BarData[] = useMemo(() => {
+    // Use explicit typing with index signature for countMap
+    const countMap: Record<number, number> = {};
+
+    alerts.forEach(({ time }) => {
+      let hour: number | null = null;
+      try {
+        const date = new Date(`1970-01-01T${time}`);
+        if (!isNaN(date.getHours())) {
+          hour = date.getHours();
+        } else {
+          const parts = time.match(/(\d+):\d+(?::\d+)?\s*(AM|PM)/i);
+          if (parts) {
+            hour = parseInt(parts[1], 10);
+            if (/PM/i.test(parts[2]) && hour !== 12) hour += 12;
+            if (/AM/i.test(parts[2]) && hour === 12) hour = 0;
+          }
+        }
+      } catch {
+        hour = null;
+      }
+
+      if (hour !== null) {
+        countMap[hour] = (countMap[hour] ?? 0) + 1;
+      }
+    });
+
+    const data: BarData[] = [];
+    for (let i = 0; i < 24; i++) {
+      data.push({
+        value: countMap[i] ?? 0,
+        label: `${i}`.padStart(2, "0") + "h",
+      });
+    }
+    return data;
+  }, [alerts]);
 
   return (
     <SafeAreaView className="flex-1 bg-white px-6 py-6">
@@ -48,7 +87,7 @@ export default function MotionAlertsScreen() {
       {/* Chart Section */}
       <View className="bg-gray-100 rounded-3xl px-8 mb-6">
         <Text className="text-black font-semibold text-base mb-4">
-          Motion Activity (Past Hours)
+          Motion Activity (Past 24 Hours)
         </Text>
         <BarChart
           data={chartData}

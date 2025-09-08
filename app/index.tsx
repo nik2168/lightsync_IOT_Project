@@ -25,7 +25,12 @@ export default function SmartHomeScreen() {
   const [yellowLedState, setYellowLedState] = useState(false);
   const [allLightsState, setAllLightsState] = useState(false);
 
+  // ...existing states...
   const [motionDetected, setMotionDetected] = useState(false);
+
+  // NEW: motion alerts array to store {id, location, time}
+  type MotionAlert = { id: string; location: string; time: string };
+  const [motionAlerts, setMotionAlerts] = useState<MotionAlert[]>([]);
   const router = useRouter();
   const socket = getSocket();
 
@@ -42,8 +47,24 @@ export default function SmartHomeScreen() {
     });
 
     // MOTION UPDATES
+
+    // Listen for motion detection with timestamp
     socket.on("motionUpdate", (data) => {
       setMotionDetected(data.motion);
+
+      if (data.motion) {
+        const timestamp = new Date(data.timestamp || Date.now());
+        const formattedTime = timestamp.toLocaleTimeString();
+
+        setMotionAlerts((prevAlerts) => [
+          {
+            id: String(Date.now()),
+            location: "Living Room", // Adjust or get actual location if available
+            time: formattedTime,
+          },
+          ...prevAlerts,
+        ]);
+      }
     });
 
     // LED UPDATES from backend
@@ -62,6 +83,7 @@ export default function SmartHomeScreen() {
       socket.off("sensorUpdate");
       socket.off("motionUpdate");
       socket.off("ledUpdate");
+      socket.off("motionUpdate");
     };
   }, [socket]);
 
@@ -201,7 +223,12 @@ export default function SmartHomeScreen() {
                     </View>
                   </View>
                   <TouchableOpacity
-                    onPress={() => router.push("/motionalerts")}
+                    onPress={() =>
+                      router.push({
+                        pathname: "/motionalerts",
+                        params: { alerts: JSON.stringify(motionAlerts) },
+                      })
+                    }
                     className="bg-blue-500 px-4 py-2 mr-2 rounded-full"
                   >
                     <Text className="text-white text-sm font-medium">

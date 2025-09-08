@@ -40,6 +40,9 @@ export default {
       output: "static",
       favicon: "./assets/images/favicon.png",
     },
+    runtimeVersion: {
+      policy: "appVersion",
+    },
     plugins: [
       "expo-router",
       [
