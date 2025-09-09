@@ -14,6 +14,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import { getSocket } from "@/redux/socket";
 import * as Updates from "expo-updates";
+import { io } from "socket.io-client";
 
 export default function SmartHomeScreen() {
   const [temperature, setTemperature] = useState(26.6);
@@ -49,22 +50,36 @@ export default function SmartHomeScreen() {
     // MOTION UPDATES
 
     // Listen for motion detection with timestamp
-    socket.on("motionUpdate", (data) => {
+    socket.on("objectDetected", (data) => {
       setMotionDetected(data.motion);
+      console.log("motionDAta: ", data);
 
       if (data.motion) {
-        const timestamp = new Date(data.timestamp || Date.now());
-        const formattedTime = timestamp.toLocaleTimeString();
+        const timestamp = new Date(data.timestamp);
+
+        // Format: 24 Aug at 08:47 pm
+        const day = timestamp.getDate();
+        const month = timestamp.toLocaleString("en-US", { month: "short" });
+        const time = timestamp.toLocaleString("en-US", {
+          hour: "2-digit",
+          minute: "2-digit",
+          hour12: true,
+        });
+
+        const formattedTime = `${day} ${month} at ${time.toLowerCase()}`;
 
         setMotionAlerts((prevAlerts) => [
           {
-            id: String(Date.now()),
-            location: "Living Room", // Adjust or get actual location if available
+            id: data.deviceId,
+            location: "Living Room", // or dynamic location if available
             time: formattedTime,
+            timestamp: data.timestamp, // keep raw timestamp too
           },
           ...prevAlerts,
         ]);
       }
+
+      // socket.emit("toggleGreenLed", { greenLedState: true });
     });
 
     // LED UPDATES from backend
@@ -217,7 +232,7 @@ export default function SmartHomeScreen() {
                       </Text>
                       <Text className="text-gray-500 text-xs">
                         {motionDetected
-                          ? "In Living room just now!"
+                          ? `In Living room at ${motionAlerts[0].time}`
                           : "All clear"}
                       </Text>
                     </View>
