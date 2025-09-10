@@ -64,9 +64,11 @@ export default function SmartHomeScreen() {
           hour: "2-digit",
           minute: "2-digit",
           hour12: true,
+          second: "2-digit",
         });
 
-        const formattedTime = `${day} ${month} at ${time.toLowerCase()}`;
+        // const formattedTime = `${day} ${month} at ${time.toLowerCase()}`;
+        const formattedTime = `at ${time.toLowerCase()}`;
 
         setMotionAlerts((prevAlerts) => [
           {
@@ -78,6 +80,8 @@ export default function SmartHomeScreen() {
           ...prevAlerts,
         ]);
       }
+
+      toggleGreenLed();
 
       // socket.emit("toggleGreenLed", { greenLedState: true });
     });

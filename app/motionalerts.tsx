@@ -71,6 +71,7 @@ export default function MotionAlertsScreen() {
         hour: "2-digit",
         minute: "2-digit",
         hour12: true,
+        second: "2-digit",
       });
       const formattedTime = `${day} ${month} at ${time.toLowerCase()}`;
 
@@ -82,7 +83,7 @@ export default function MotionAlertsScreen() {
       };
 
       setAlerts((prev) => [alert, ...prev].slice(0, 500)); // keep recent 500
-      // socket.emit("toggleGreenLed", { greenLedState: true });
+      socket.emit("toggleGreenLed", { greenLedState: true });
     };
 
     socket.on("objectDetected", onObjectDetected);
