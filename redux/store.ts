@@ -5,6 +5,7 @@ import channelReducer from "./createChannelSlice";
 import promotionReducer from "./promotionSlice";
 import userReducer from "./userSlice";
 import api from "./api";
+import lightSyncReducer from "./lightSyncSlice";
 
 export const store = configureStore({
   reducer: {
@@ -12,6 +13,7 @@ export const store = configureStore({
     channelForm: channelReducer,
     promotionForm: promotionReducer,
     userState: userReducer,
+    lightSyncState: lightSyncReducer,
     api: api.reducer,
   },
   middleware: (getDefaultMiddleware) =>

@@ -43,6 +43,14 @@ export default function RootLayout() {
                 gestureEnabled: true,
               }}
             />
+            <Stack.Screen
+              name="light/[id]"
+              options={{
+                headerShown: false,
+                animation: "slide_from_right",
+                gestureEnabled: true,
+              }}
+            />
           </Stack>
         </SocketInit>
       </GestureHandlerRootView>

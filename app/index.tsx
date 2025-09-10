@@ -13,51 +13,64 @@ import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import { getSocket } from "@/redux/socket";
+import {
+  updateSensorData,
+  updateLedStates,
+  toggleRedLed,
+  toggleGreenLed,
+  toggleYellowLed,
+  toggleAllLights,
+  updateMotionDetected,
+  addMotionAlert,
+  updateGreenBrightness,
+} from "@/redux/lightSyncSlice";
 import * as Updates from "expo-updates";
-import { io } from "socket.io-client";
+import { useAppDispatch, useAppSelector } from "@/redux/hook";
 
 export default function SmartHomeScreen() {
-  const [temperature, setTemperature] = useState(26.6);
-  const [humidity, setHumidity] = useState(78);
+  const dispatch = useAppDispatch();
+  const {
+    temperature,
+    humidity,
+    redLedState,
+    greenLedState,
+    yellowLedState,
+    allLightsState,
+    motionDetected,
+    motionAlerts,
+  } = useAppSelector((state) => state.lightSyncState);
 
-  // Individual light states
-  const [redLedState, setRedLedState] = useState(false);
-  const [greenLedState, setGreenLedState] = useState(false);
-  const [yellowLedState, setYellowLedState] = useState(false);
-  const [allLightsState, setAllLightsState] = useState(false);
-
-  // ...existing states...
-  const [motionDetected, setMotionDetected] = useState(false);
-
-  // NEW: motion alerts array to store {id, location, time}
-  type MotionAlert = { id: string; location: string; time: string };
-  const [motionAlerts, setMotionAlerts] = useState<MotionAlert[]>([]);
   const router = useRouter();
   const socket = getSocket();
+  const [isUpdateAvailable, setIsUpdateAvailable] = useState(false);
 
   useEffect(() => {
     // SENSOR UPDATES
     socket.on("sensorUpdate", (data) => {
       console.log("📡 sensorUpdate:", data);
-      setTemperature(data.temperature);
-      setHumidity(data.humidity);
-      setRedLedState(data.redLedState);
-      setGreenLedState(data.greenLedState);
-      setYellowLedState(data.yellowLedState);
-      setAllLightsState(data.allLightsState);
+      dispatch(
+        updateSensorData({
+          temperature: data.temperature,
+          humidity: data.humidity,
+        })
+      );
+      dispatch(
+        updateLedStates({
+          redLedState: data.redLedState,
+          greenLedState: data.greenLedState,
+          yellowLedState: data.yellowLedState,
+          allLightsState: data.allLightsState,
+        })
+      );
     });
 
-    // MOTION UPDATES
-
-    // Listen for motion detection with timestamp
+    // MOTION DETECTION
     socket.on("objectDetected", (data) => {
-      setMotionDetected(data.motion);
       console.log("motionDAta: ", data);
+      dispatch(updateMotionDetected(data.motion));
 
       if (data.motion) {
         const timestamp = new Date(data.timestamp);
-
-        // Format: 24 Aug at 08:47 pm
         const day = timestamp.getDate();
         const month = timestamp.toLocaleString("en-US", { month: "short" });
         const time = timestamp.toLocaleString("en-US", {
@@ -67,73 +80,64 @@ export default function SmartHomeScreen() {
           second: "2-digit",
         });
 
-        // const formattedTime = `${day} ${month} at ${time.toLowerCase()}`;
         const formattedTime = `at ${time.toLowerCase()}`;
 
-        setMotionAlerts((prevAlerts) => [
-          {
+        dispatch(
+          addMotionAlert({
             id: data.deviceId,
-            location: "Living Room", // or dynamic location if available
+            location: "Living Room",
             time: formattedTime,
-            timestamp: data.timestamp, // keep raw timestamp too
-          },
-          ...prevAlerts,
-        ]);
+            timestamp: data.timestamp,
+          })
+        );
+
+        // Toggle green LED on motion
+        handleToggleGreenLed();
       }
-
-      toggleGreenLed();
-
-      // socket.emit("toggleGreenLed", { greenLedState: true });
     });
 
     // LED UPDATES from backend
     socket.on("ledUpdate", (data) => {
       console.log("💡 ledUpdate received:", data);
-      if (data.redLedState !== undefined) setRedLedState(data.redLedState);
-      if (data.greenLedState !== undefined)
-        setGreenLedState(data.greenLedState);
-      if (data.yellowLedState !== undefined)
-        setYellowLedState(data.yellowLedState);
-      if (data.allLightsState !== undefined)
-        setAllLightsState(data.allLightsState);
+      dispatch(updateLedStates(data));
+    });
+
+    // BRIGHTNESS UPDATES
+    socket.on("greenBrightnessUpdate", (data) => {
+      console.log("🎛️ Brightness update:", data);
+      dispatch(updateGreenBrightness(data.brightness));
     });
 
     return () => {
       socket.off("sensorUpdate");
-      socket.off("motionUpdate");
+      socket.off("objectDetected");
       socket.off("ledUpdate");
-      socket.off("motionUpdate");
+      socket.off("greenBrightnessUpdate");
     };
-  }, [socket]);
+  }, [socket, dispatch]);
 
-  // Toggle functions for each light
-  const toggleRedLed = () => {
-    const newState = !redLedState;
-    socket.emit("toggleRedLed", { redLedState: newState });
-    // setRedLedState(newState); // Optimistic update
+  // Toggle functions with optimistic updates
+  const handleToggleRedLed = () => {
+    dispatch(toggleRedLed()); // Optimistic update
+    socket.emit("toggleRedLed", { redLedState: !redLedState });
   };
 
-  const toggleGreenLed = () => {
-    const newState = !greenLedState;
-    socket.emit("toggleGreenLed", { greenLedState: newState });
-    // setGreenLedState(newState); // Optimistic update
+  const handleToggleGreenLed = () => {
+    dispatch(toggleGreenLed()); // Optimistic update
+    socket.emit("toggleGreenLed", { greenLedState: !greenLedState });
   };
 
-  const toggleYellowLed = () => {
-    const newState = !yellowLedState;
-    socket.emit("toggleYellowLed", { yellowLedState: newState });
-    // setYellowLedState(newState); // Optimistic update
+  const handleToggleYellowLed = () => {
+    dispatch(toggleYellowLed()); // Optimistic update
+    socket.emit("toggleYellowLed", { yellowLedState: !yellowLedState });
   };
 
-  const toggleAllLights = () => {
-    const newState = !allLightsState;
-    socket.emit("toggleAllLights", { allLightsState: newState });
-    // setAllLightsState(newState); // Optimistic update
+  const handleToggleAllLights = () => {
+    dispatch(toggleAllLights()); // Optimistic update
+    socket.emit("toggleAllLights", { allLightsState: !allLightsState });
   };
 
-  const [isUpdateAvailable, setIsUpdateAvailable] = useState(false);
-
-  // check for updates
+  // Check for updates
   useEffect(() => {
     const checkUpdates = async () => {
       try {
@@ -152,10 +156,8 @@ export default function SmartHomeScreen() {
     <View className="flex-1 bg-white">
       <StatusBar barStyle="dark-content" backgroundColor="#f9fafb" />
 
-      {/* New update prompt */}
       <UpdatePrompt isVisible={isUpdateAvailable} />
 
-      {/* Fading Background */}
       <ImageBackground
         source={{
           uri: "https://source.unsplash.com/1200x800/?home,smart,house",
@@ -171,10 +173,10 @@ export default function SmartHomeScreen() {
           style={{ flex: 1 }}
         >
           {/* Header */}
-          <View className="flex-row justify-between items-center px-6 py-4 pt-[5rem] ">
+          <View className="flex-row justify-between items-center px-6 py-4 pt-[5rem]">
             <View>
               <Text className="text-gray-800 text-md">Hello, Nik</Text>
-              <Text className="text-gray-800 text-2xl ">
+              <Text className="text-gray-800 text-2xl">
                 {(() => {
                   const now = new Date();
                   const hours = now.getHours();
@@ -235,8 +237,8 @@ export default function SmartHomeScreen() {
                         {motionDetected ? "Motion detected!" : "No motion"}
                       </Text>
                       <Text className="text-gray-500 text-xs">
-                        {motionDetected
-                          ? `In Living room at ${motionAlerts[0].time}`
+                        {motionDetected && motionAlerts.length > 0
+                          ? `In Living room ${motionAlerts[0].time}`
                           : "All clear"}
                       </Text>
                     </View>
@@ -263,7 +265,7 @@ export default function SmartHomeScreen() {
                 <View className="flex-row gap-4 p-4 rounded-3xl">
                   {/* Red Light */}
                   <TouchableOpacity
-                    onPress={toggleRedLed}
+                    onPress={handleToggleRedLed}
                     className="bg-white rounded-2xl flex justify-between p-4 h-[10rem] flex-1"
                   >
                     <View>
@@ -288,7 +290,7 @@ export default function SmartHomeScreen() {
                     <View className="flex-row items-center justify-between">
                       <Switch
                         value={redLedState}
-                        onValueChange={toggleRedLed}
+                        onValueChange={handleToggleRedLed}
                         trackColor={{ false: "#d1d5db", true: "#ef4444" }}
                         thumbColor="#ffffff"
                         style={{
@@ -303,7 +305,7 @@ export default function SmartHomeScreen() {
 
                   {/* Green Light */}
                   <TouchableOpacity
-                    onPress={toggleGreenLed}
+                    onPress={() => router.push(`/light/green`)}
                     className="bg-white rounded-2xl flex justify-between p-4 h-[10rem] flex-1"
                   >
                     <View>
@@ -328,7 +330,7 @@ export default function SmartHomeScreen() {
                     <View className="flex-row items-center justify-between">
                       <Switch
                         value={greenLedState}
-                        onValueChange={toggleGreenLed}
+                        onValueChange={handleToggleGreenLed}
                         trackColor={{ false: "#d1d5db", true: "#10b981" }}
                         thumbColor="#ffffff"
                         style={{
@@ -346,7 +348,7 @@ export default function SmartHomeScreen() {
                 <View className="flex-row gap-4 px-4 pb-4 rounded-3xl">
                   {/* Yellow Light */}
                   <TouchableOpacity
-                    onPress={toggleYellowLed}
+                    onPress={handleToggleYellowLed}
                     className="bg-white rounded-2xl flex justify-between p-4 h-[10rem] flex-1"
                   >
                     <View>
@@ -371,7 +373,7 @@ export default function SmartHomeScreen() {
                     <View className="flex-row items-center justify-between">
                       <Switch
                         value={yellowLedState}
-                        onValueChange={toggleYellowLed}
+                        onValueChange={handleToggleYellowLed}
                         trackColor={{ false: "#d1d5db", true: "#f59e0b" }}
                         thumbColor="#ffffff"
                         style={{
@@ -386,7 +388,7 @@ export default function SmartHomeScreen() {
 
                   {/* All Lights */}
                   <TouchableOpacity
-                    onPress={toggleAllLights}
+                    onPress={handleToggleAllLights}
                     className="bg-white rounded-2xl flex justify-between p-4 h-[10rem] flex-1"
                   >
                     <View>
@@ -411,7 +413,7 @@ export default function SmartHomeScreen() {
                     <View className="flex-row items-center justify-between">
                       <Switch
                         value={allLightsState}
-                        onValueChange={toggleAllLights}
+                        onValueChange={handleToggleAllLights}
                         trackColor={{ false: "#d1d5db", true: "#8b5cf6" }}
                         thumbColor="#ffffff"
                         style={{
