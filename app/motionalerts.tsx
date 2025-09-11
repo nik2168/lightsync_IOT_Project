@@ -69,7 +69,7 @@ export default function MotionAlertsScreen() {
         })
       );
 
-      socket.emit("toggleGreenLed", { greenLedState: true });
+      socket.emit("toggleYellowLed", { greenLedState: true });
     };
 
     socket.on("objectDetected", onObjectDetected);

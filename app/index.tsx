@@ -92,7 +92,7 @@ export default function SmartHomeScreen() {
         );
 
         // Toggle green LED on motion
-        handleToggleGreenLed();
+        handleToggleYellowLed();
       }
     });
 
@@ -156,8 +156,6 @@ export default function SmartHomeScreen() {
     <View className="flex-1 bg-white">
       <StatusBar barStyle="dark-content" backgroundColor="#f9fafb" />
 
-      <UpdatePrompt isVisible={isUpdateAvailable} />
-
       <ImageBackground
         source={{
           uri: "https://source.unsplash.com/1200x800/?home,smart,house",
@@ -186,6 +184,7 @@ export default function SmartHomeScreen() {
                 })()}
               </Text>
             </View>
+
             <View className="flex-row items-center gap-2 bg-blue-200 p-2 rounded-full">
               <TouchableOpacity className="p-2 bg-white rounded-full">
                 <Ionicons name="menu" size={24} color="#000" />
@@ -195,6 +194,7 @@ export default function SmartHomeScreen() {
               </TouchableOpacity>
             </View>
           </View>
+          <UpdatePrompt isVisible={isUpdateAvailable} />
 
           <ScrollView showsVerticalScrollIndicator={false}>
             <View className="p-6 gap-6 shadow-sm">
@@ -439,7 +439,7 @@ function UpdatePrompt({ isVisible }: { isVisible: boolean }) {
   if (!isVisible) return null;
 
   return (
-    <View className="absolute bottom-[7rem] w-full px-4">
+    <View className=" w-full px-4">
       <View className="bg-circle rounded-2xl border-[1px] border-medium shadow-lg p-4 flex-row justify-between items-center">
         <Text className="text-base font-semibold">
           A new update is available 🎉

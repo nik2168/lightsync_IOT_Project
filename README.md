@@ -9,6 +9,8 @@ This is an [Expo](https://expo.dev) project created with [`create-expo-app`](htt
 
 EXPO_TOKEN=OnRYMQG8C_thNcuaRGUfEZZS0xc8ODz0Wgp3x31G npx eas update --branch production --message "motion alerts "
 
+EXPO_TOKEN=OnRYMQG8C_thNcuaRGUfEZZS0xc8ODz0Wgp3x31G npx eas build -p android --profile production
+
 ## Get started
 
 1. Install dependencies
