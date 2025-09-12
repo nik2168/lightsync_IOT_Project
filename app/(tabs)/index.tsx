@@ -37,6 +37,7 @@ import Animated, {
 } from "react-native-reanimated";
 import EnergySummary from "@/components/custom/Energy/EnergySummary";
 import FanSpeedControl from "@/components/custom/Home/FanSpeedControl";
+import * as Speech from "expo-speech";
 
 export default function SmartHomeScreen() {
   const dispatch = useAppDispatch();
@@ -101,6 +102,16 @@ export default function SmartHomeScreen() {
             timestamp: data.timestamp,
           })
         );
+
+        Speech.speak("Alert: Back door movement detected.", {
+          language: "en-GB", // UK English locale
+          pitch: 0.85, // Slightly lower for authority
+          rate: 0.8, // Measured, deliberate pace
+          volume: 1.0, // Full volume for alert
+          voice: undefined, // Use system's best UK English voice
+          onDone: () => console.log("Alert spoken"),
+          onError: (error) => console.log("TTS Error:", error),
+        });
 
         // console.log("toggle Yellow ");
         // Toggle green LED on motion
