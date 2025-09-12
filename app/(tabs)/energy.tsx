@@ -86,7 +86,7 @@ export default function Energy() {
           });
           return newData;
         });
-      }, 10000); // Update every 10 seconds
+      }, 1000); // Update every 10 seconds
     }
 
     return () => {
