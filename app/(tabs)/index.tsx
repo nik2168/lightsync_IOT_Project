@@ -35,6 +35,8 @@ import Animated, {
   cancelAnimation,
   Easing,
 } from "react-native-reanimated";
+import EnergySummary from "@/components/custom/Energy/EnergySummary";
+import FanSpeedControl from "@/components/custom/Home/FanSpeedControl";
 
 export default function SmartHomeScreen() {
   const dispatch = useAppDispatch();
@@ -94,15 +96,15 @@ export default function SmartHomeScreen() {
         dispatch(
           addMotionAlert({
             id: data.deviceId,
-            location: "Living Room",
+            location: "Back Door",
             time: formattedTime,
             timestamp: data.timestamp,
           })
         );
 
-        console.log("toggle Yellow ");
+        // console.log("toggle Yellow ");
         // Toggle green LED on motion
-        handleToggleYellowLed();
+        if (!yellowLedState) handleToggleYellowLed();
       }
     });
 
@@ -144,6 +146,13 @@ export default function SmartHomeScreen() {
 
   const handleToggleAllLights = () => {
     dispatch(toggleAllLights()); // Optimistic update
+
+    // socket.emit("toglleYellowLed", { yellowLedState: !yellowLedState }); // lamp 2
+    handleToggleYellowLed();
+    handleToggleGreenLed();
+    handleToggleRedLed();
+    // socket.emit("toggleGreenLed", { greenLedState: !greenLedState });
+    // socket.emit("toggleRedLed", { redLedState: !redLedState });
     socket.emit("toggleAllLights", { allLightsState: !allLightsState });
   };
 
@@ -220,7 +229,7 @@ export default function SmartHomeScreen() {
         <View className="flex-row justify-between items-center px-4  pt-[3.5rem]">
           <View>
             <Text className="text-gray-800 text-sm">Hello, Nik</Text>
-            <Text className="text-gray-800 text-2xl">
+            <Text className="text-gray-800 text-xl">
               {(() => {
                 const now = new Date();
                 const hours = now.getHours();
@@ -234,41 +243,76 @@ export default function SmartHomeScreen() {
 
           <View className="flex-row items-center gap-2 bg-gray-200 p-2 rounded-full">
             <TouchableOpacity className="p-2 bg-white rounded-full">
-              <Ionicons name="menu" size={24} color="#000" />
+              <Ionicons name="menu" size={16} color="#000" />
             </TouchableOpacity>
-            <TouchableOpacity className="p-2 bg-white rounded-full">
-              <Ionicons name="notifications-outline" size={24} color="#000" />
+            <TouchableOpacity
+              onPress={() => router.push("/motionalerts")}
+              className="p-2 bg-white rounded-full"
+            >
+              <Ionicons name="notifications-outline" size={16} color="#000" />
             </TouchableOpacity>
           </View>
         </View>
         <UpdatePrompt isVisible={isUpdateAvailable} />
 
-        <View>
+        <ScrollView>
           <View className="p-4 py-5 gap-3">
             {/* Temperature Card */}
-            <View className="bg-gray-200 rounded-3xl p-4">
-              <View className="flex-row justify-between items-center">
-                <View>
-                  <Text className="text-black text-sm">Temperature</Text>
-                  {/* <Text className="text-gray-600 text-xs">Living room</Text> */}
-                </View>
-              </View>
 
-              <View className="items-center mb-6 w-full">
-                <View className="flex-row justify-center items-center mb-2">
-                  <Ionicons name="water" size={14} color="#3B82F6" />
-                  <Text className="text-gray-600 text-xs">
-                    {" "}
-                    humidity : {humidity}%
-                  </Text>
+            <View className="rounded-3xl overflow-hidden">
+              <ImageBackground
+                source={require("@/assets/home/homeplant.jpg")}
+                className="p-4"
+                imageStyle={{ borderRadius: 24 }}
+                resizeMode="cover"
+              >
+                {/* Semi-transparent overlay for better text readability */}
+                <View className="absolute inset-0 bg-black/10 rounded-3xl" />
+
+                {/* Content with higher z-index */}
+                <View className="relative z-10">
+                  <View className="flex-row justify-between items-center">
+                    <View>
+                      <Text className="text-gray-700 text-sm font-medium">
+                        Temperature
+                      </Text>
+                      {/* <Text className="text-gray-200 text-xs">Living room</Text> */}
+                    </View>
+                    <View className="bg-white/20 backdrop-blur rounded-full p-2">
+                      <Ionicons name="thermometer" size={16} color="#ffffff" />
+                    </View>
+                  </View>
+
+                  <View className="items-center mb-6 w-full">
+                    <View className="flex-row justify-center items-center mb-2">
+                      <Ionicons name="water" size={14} color="#60a5fa" />
+                      <Text className="text-gray-700 text-xs">
+                        {" "}
+                        humidity : {humidity}%
+                      </Text>
+                    </View>
+                    <Text className="text-5xl font-medium text-gray-700 drop-shadow-lg">
+                      {temperature}°
+                    </Text>
+
+                    {/* Optional: Add a subtle indicator for temperature range */}
+                    <View className="flex-row justify-center mt-3  items-center bg-white/70 backdrop-blur rounded-full px-1 py-1">
+                      <View className="w-2 h-2 bg-green-400 rounded-full" />
+                      <Text className="text-gray-800 text-center text-xs mr-2">
+                        {temperature >= 20 && temperature <= 30
+                          ? "Comfortable"
+                          : temperature < 20
+                          ? "Cool"
+                          : "Warm"}
+                      </Text>
+                    </View>
+
+                    {/* <Text className="text-gray-200 text-sm mt-2">
+          Min: {14}° | Max: {38}°
+        </Text> */}
+                  </View>
                 </View>
-                <Text className="text-4xl font-medium text-black">
-                  {temperature}°
-                </Text>
-                {/* <Text className="text-gray-600 text-sm mt-2">
-                  Min: {14}° | Max: {38}°
-                </Text> */}
-              </View>
+              </ImageBackground>
             </View>
 
             {/* Motion Alert */}
@@ -312,6 +356,9 @@ export default function SmartHomeScreen() {
             </View>
 
             {/* Lights Control */}
+            <Text className="text-black text-lg font-semibold px-4 mt-6">
+              Home Controls
+            </Text>
             <View className="bg-gray-200 rounded-3xl">
               {/* First Row - Lamp 1 and Fan */}
               <View className="flex-row gap-3 p-3 rounded-3xl">
@@ -369,8 +416,8 @@ export default function SmartHomeScreen() {
               <View className="flex-row gap-3 px-3 pb-3 rounded-3xl">
                 {/* Fan */}
                 <TouchableOpacity
-                  onPress={() => router.push(`/light/green`)}
-                  className="bg-white rounded-2xl flex justify-between p-4 h-[10rem] flex-1"
+                  onPress={handleToggleGreenLed}
+                  className="bg-white rounded-2xl flex justify-between p-4 h-[8rem] flex-1"
                 >
                   <View>
                     <Text className="text-black font-semibold mb-1">Fan</Text>
@@ -407,7 +454,7 @@ export default function SmartHomeScreen() {
                 {/* Everything On */}
                 <TouchableOpacity
                   onPress={handleToggleAllLights}
-                  className="bg-white rounded-2xl flex justify-between p-4 h-[10rem] flex-1"
+                  className="bg-white rounded-2xl flex justify-between p-4 h-[8rem] flex-1"
                 >
                   <View>
                     <Text className="text-black font-semibold mb-1">
@@ -457,8 +504,14 @@ export default function SmartHomeScreen() {
                 </TouchableOpacity>
               </View>
             </View>
+            <FanSpeedControl />
+
+            <Text className="text-black text-lg font-semibold px-4 mt-6">
+              Energy
+            </Text>
+            <EnergySummary />
           </View>
-        </View>
+        </ScrollView>
         {/* </LinearGradient> */}
       </ImageBackground>
     </View>
@@ -469,12 +522,13 @@ function UpdatePrompt({ isVisible }: { isVisible: boolean }) {
   if (!isVisible) return null;
 
   return (
-    <View className=" w-full px-4">
-      <View className="bg-circle rounded-2xl border-[1px] border-medium shadow-lg p-4 flex-row justify-between items-center">
-        <Text className="text-base font-semibold">
+    <View className=" w-full px-4 my-3">
+      <View className="bg-white rounded-2xl border-[1px] border-gray-100 shadow-lg p-4 flex-row justify-between items-center">
+        <Text className="text-base text-gray-600">
           A new update is available 🎉
         </Text>
         <TouchableOpacity
+          className="p-2 px-4 bg-[#007AFF] shadow rounded-full"
           onPress={async () => {
             try {
               await Updates.fetchUpdateAsync();
@@ -484,7 +538,7 @@ function UpdatePrompt({ isVisible }: { isVisible: boolean }) {
             }
           }}
         >
-          <Text className="text-primary font-semibold text-md">Update</Text>
+          <Text className="text-white font-medium text-sm">Update</Text>
         </TouchableOpacity>
       </View>
     </View>

@@ -1,5 +1,5 @@
 import { Colors } from "@/constants/Colors";
-import { Feather, Ionicons, MaterialIcons } from "@expo/vector-icons";
+import { MaterialIcons } from "@expo/vector-icons";
 import { BottomTabBarProps } from "@react-navigation/bottom-tabs";
 import { Tabs, useRouter } from "expo-router";
 import { useEffect } from "react";
@@ -23,7 +23,7 @@ const INACTIVE_COLOR = Colors.lightPrimary;
 export default function TabLayout() {
   const translateX = useSharedValue(0);
   const { width } = useWindowDimensions();
-  const TAB_WIDTH = width / 5;
+  const TAB_WIDTH = width / 2; // Changed from width / 5 to width / 2
 
   return (
     <Tabs
@@ -31,12 +31,24 @@ export default function TabLayout() {
       screenOptions={{
         tabBarShowLabel: true,
         tabBarStyle: {
-          height: 80,
-          paddingTop: 8,
-          paddingBottom: 10,
+          height: 65,
+          paddingTop: 4,
+          paddingBottom: 6,
+          paddingVertical: 0,
           borderTopWidth: 0.5,
           borderTopColor: "#ccc",
           backgroundColor: "#fff",
+        },
+        tabBarItemStyle: {
+          height: "100%",
+          paddingVertical: 0,
+          justifyContent: "center",
+          alignItems: "center",
+        },
+        tabBarLabelStyle: {
+          fontSize: 10,
+          marginTop: 0,
+          marginBottom: 0,
         },
       }}
       tabBar={(props) => (
@@ -47,8 +59,9 @@ export default function TabLayout() {
         />
       )}
     >
+      {/* Only keep Home and Energy tabs */}
       <Tabs.Screen
-        name="about"
+        name="index"
         options={{
           headerShown: false,
         }}
@@ -57,34 +70,6 @@ export default function TabLayout() {
         name="energy"
         options={{
           headerShown: false,
-        }}
-      />
-
-      <Tabs.Screen
-        name="index"
-        options={{
-          headerShown: false,
-        }}
-      />
-      <Tabs.Screen
-        name="bruno"
-        options={{
-          headerShown: false,
-        }}
-      />
-      <Tabs.Screen
-        name="profile"
-        options={{
-          headerTitle: "My Profile",
-          headerShadowVisible: false,
-          headerBackButtonDisplayMode: "minimal",
-          headerTintColor: Colors.primary,
-          headerRight: () => null,
-          headerTitleAlign: "center",
-          headerTitleStyle: {
-            fontSize: 16,
-            color: Colors.primary,
-          },
         }}
       />
     </Tabs>
@@ -119,8 +104,10 @@ const AnimatedTabBar = ({
         flexDirection: "row",
         justifyContent: "center",
         alignItems: "center",
-        height: 80 + insetBottom,
+        height: 65 + insetBottom,
         paddingBottom: insetBottom,
+        paddingTop: 0,
+        paddingVertical: 0,
         backgroundColor: "#fff",
         borderTopWidth: 0.5,
         borderTopColor: "#ccc",
@@ -131,14 +118,14 @@ const AnimatedTabBar = ({
         style={[
           {
             position: "absolute",
-            bottom: insetBottom + 6,
+            bottom: insetBottom + 4,
             left: 0,
-            width: 50,
-            height: 8,
+            width: 80, // Increased from 50 for better visibility with 2 tabs
+            height: 6,
             backgroundColor: ACTIVE_COLOR,
             borderTopLeftRadius: 3,
             borderTopRightRadius: 3,
-            marginLeft: (tabWidth - 50) / 2,
+            marginLeft: (tabWidth - 80) / 2, // Adjusted for new width
           },
           animatedStyle,
         ]}
@@ -165,20 +152,26 @@ const AnimatedTabBar = ({
               flex: 1,
               alignItems: "center",
               justifyContent: "center",
+              paddingVertical: 8, // Slightly increased padding for 2-tab layout
+              height: "100%",
             }}
           >
             <View
               style={{
                 alignItems: "center",
+                justifyContent: "center",
+                gap: 3, // Slightly increased gap for better spacing
                 opacity: isFocused ? 1 : 0.5,
               }}
             >
               {icon}
               <Text
                 style={{
-                  fontSize: 10,
-                  marginTop: 2,
+                  fontSize: 11, // Slightly larger font for better readability with 2 tabs
                   color: isFocused ? ACTIVE_COLOR : INACTIVE_COLOR,
+                  marginTop: 0,
+                  lineHeight: 14,
+                  fontWeight: isFocused ? "600" : "400", // Bold text for active tab
                 }}
               >
                 {label}
@@ -196,15 +189,9 @@ function getTabIcon(name: string, focused: boolean) {
 
   switch (name) {
     case "index":
-      return <MaterialIcons name="home-filled" size={28} color={color} />;
-    case "bruno":
-      return <Feather name="user" size={22} color={color} />;
-    case "profile":
-      return <Ionicons name="person-circle-outline" size={28} color={color} />;
-    case "about":
-      return <Feather name="info" size={22} color={color} />;
+      return <MaterialIcons name="home-filled" size={26} color={color} />; // Slightly larger for 2-tab layout
     case "energy":
-      return <MaterialIcons name="bolt" size={28} color={color} />;
+      return <MaterialIcons name="bolt" size={26} color={color} />; // Slightly larger for 2-tab layout
     default:
       return null;
   }
@@ -214,12 +201,6 @@ function getTabLabel(name: string) {
   switch (name) {
     case "index":
       return "Home";
-    case "bruno":
-      return "Bruno";
-    case "profile":
-      return "Profile";
-    case "about":
-      return "About";
     case "energy":
       return "Energy";
     default:
