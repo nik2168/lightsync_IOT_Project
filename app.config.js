@@ -14,6 +14,12 @@ export default {
     ios: {
       supportsTablet: true,
       bundleIdentifier: "com.nik21.lightsync",
+      infoPlist: {
+        NSMicrophoneUsageDescription:
+          "This app needs access to your microphone for voice commands to control your smart home devices.",
+        NSCameraUsageDescription:
+          "This app may need camera access for future features.",
+      },
     },
     android: {
       package: "com.nik21.lightsync",
@@ -23,6 +29,14 @@ export default {
         backgroundColor: "#ffffff",
       },
       edgeToEdgeEnabled: true,
+      permissions: [
+        "RECORD_AUDIO",
+        "MODIFY_AUDIO_SETTINGS",
+        "INTERNET",
+        "READ_EXTERNAL_STORAGE",
+        "WRITE_EXTERNAL_STORAGE",
+        "WAKE_LOCK",
+      ],
     },
     updates: {
       url: "https://u.expo.dev/8450a062-b4b4-42da-9fcb-21023daeea7c",
@@ -31,6 +45,7 @@ export default {
     },
     extra: {
       server: process.env.EXPO_PUBLIC_API_URL,
+      googleSpeechKey: process.env.EXPO_PUBLIC_GOOGLE_SPEECH_API_KEY, // Add this line
       eas: {
         projectId: "8450a062-b4b4-42da-9fcb-21023daeea7c",
       },
@@ -52,6 +67,13 @@ export default {
           imageWidth: 200,
           resizeMode: "contain",
           backgroundColor: "#38b6ff",
+        },
+      ],
+      [
+        "expo-av",
+        {
+          microphonePermission:
+            "This app needs access to your microphone for voice commands to control your smart home devices.",
         },
       ],
     ],
