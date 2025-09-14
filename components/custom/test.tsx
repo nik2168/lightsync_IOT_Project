@@ -1,36 +1,26 @@
-// import { Image } from "expo-image";
-// import React, { useState, useEffect, useRef, useCallback } from "react";
-// import { Text, TouchableOpacity, View, Alert } from "react-native";
-// import * as Speech from "expo-speech";
 // import { Audio } from "expo-av";
-// import * as FileSystem from "expo-file-system";
 // import Constants from "expo-constants";
+// import * as FileSystem from "expo-file-system";
+// import { Image } from "expo-image";
+// import * as Speech from "expo-speech";
+// import React, { useCallback, useEffect, useRef, useState } from "react";
+// import { Alert, Text, TouchableOpacity, View } from "react-native";
 // import Animated, {
-//   useSharedValue,
+//   cancelAnimation,
 //   useAnimatedStyle,
+//   useSharedValue,
 //   withRepeat,
 //   withSequence,
-//   withTiming,
-//   interpolate,
-//   cancelAnimation,
 //   withSpring,
+//   withTiming,
 // } from "react-native-reanimated";
 
 // // Import your Redux hooks and socket
 // import { useAppDispatch, useAppSelector } from "@/redux/hook";
 // import { getSocket } from "@/redux/socket";
-// import {
-//   toggleRedLed,
-//   toggleGreenLed,
-//   toggleYellowLed,
-//   toggleAllLights,
-// } from "@/redux/lightSyncSlice";
 
-// // Define types for the component
-// interface CommandPattern {
-//   patterns: RegExp[];
-//   action: () => void;
-// }
+// // ✅ Import voice commands from utils
+// import { createVoiceCommands } from "@/utils/voicecommands";
 
 // const Bruno = () => {
 //   const dispatch = useAppDispatch();
@@ -67,10 +57,8 @@
 //   const [hasPermission, setHasPermission] = useState(false);
 //   const [recording, setRecording] = useState<Audio.Recording | null>(null);
 
-//   // Simple silence-based auto-stop
-//   const [silenceTimer, setSilenceTimer] = useState<NodeJS.Timeout | null>(null);
-//   const [maxRecordingTimer, setMaxRecordingTimer] =
-//     useState<NodeJS.Timeout | null>(null);
+//   // ✅ Use useRef for timer to persist across re-renders
+//   const autoStopTimer = useRef<NodeJS.Timeout | null>(null);
 
 //   // Animation values
 //   const scale = useSharedValue(1);
@@ -106,15 +94,17 @@
 //     initializeAudio();
 //   }, []);
 
-//   // Cleanup timers
+//   // ✅ Cleanup timer on unmount
 //   useEffect(() => {
 //     return () => {
-//       if (silenceTimer) clearTimeout(silenceTimer);
-//       if (maxRecordingTimer) clearTimeout(maxRecordingTimer);
+//       if (autoStopTimer.current) {
+//         clearTimeout(autoStopTimer.current);
+//         autoStopTimer.current = null;
+//       }
 //     };
-//   }, [silenceTimer, maxRecordingTimer]);
+//   }, []);
 
-//   // ✅ Process voice command using Google Speech-to-Text API (Fixed for empty results)
+//   // ✅ Process voice command using Google Speech-to-Text API
 //   const transcribeWithGoogle = async (audioUri: string): Promise<string> => {
 //     if (!GOOGLE_SPEECH_API_KEY) {
 //       throw new Error("Google Speech API key not found");
@@ -131,30 +121,19 @@
 //         encoding: FileSystem.EncodingType.Base64,
 //       });
 
-//       // ✅ Debug: Log the first few characters of base64 to verify audio data
-//       console.log("📊 Base64 audio length:", base64Audio.length);
-//       console.log("📊 Base64 preview:", base64Audio.substring(0, 50));
-
 //       const requestBody = {
 //         config: {
-//           encoding: "WEBM_OPUS", // ✅ Try WEBM_OPUS first (often works better with mobile recordings)
-//           sampleRateHertz: 48000, // ✅ Higher sample rate for WEBM_OPUS
+//           encoding: "WEBM_OPUS",
+//           sampleRateHertz: 48000,
 //           languageCode: "en-US",
 //           enableAutomaticPunctuation: true,
 //           model: "latest_short",
-//           audioChannelCount: 1, // ✅ Ensure mono audio
+//           audioChannelCount: 1,
 //         },
 //         audio: {
 //           content: base64Audio,
 //         },
 //       };
-
-//       console.log("📤 Sending request with WEBM_OPUS encoding...");
-//       console.log("🔧 Config:", {
-//         encoding: requestBody.config.encoding,
-//         sampleRate: requestBody.config.sampleRateHertz,
-//         channels: requestBody.config.audioChannelCount,
-//       });
 
 //       const response = await fetch(
 //         `https://speech.googleapis.com/v1/speech:recognize?key=${GOOGLE_SPEECH_API_KEY}`,
@@ -167,8 +146,6 @@
 //         }
 //       );
 
-//       console.log("📥 Response status:", response.status);
-
 //       if (!response.ok) {
 //         const errorText = await response.text();
 //         console.error("❌ Google Speech API error:", errorText);
@@ -176,30 +153,10 @@
 //       }
 
 //       const data = await response.json();
-
-//       // ✅ Debug: Log the full response to see what we're getting
-//       console.log("📄 Full API Response:", JSON.stringify(data, null, 2));
-
 //       const transcriptionResult =
 //         data.results?.[0]?.alternatives?.[0]?.transcript || "";
 
 //       console.log("📝 Transcription Result:", transcriptionResult);
-
-//       // ✅ If empty, try to understand why
-//       if (!transcriptionResult) {
-//         console.log("❌ Empty transcription. Response analysis:");
-//         console.log("- Results array:", data.results?.length || 0, "items");
-//         console.log(
-//           "- First result:",
-//           data.results?.[0] ? "exists" : "missing"
-//         );
-//         console.log(
-//           "- Alternatives:",
-//           data.results?.[0]?.alternatives?.length || 0,
-//           "items"
-//         );
-//       }
-
 //       return transcriptionResult.trim();
 //     } catch (error) {
 //       console.error("Google Speech transcription error:", error);
@@ -209,7 +166,20 @@
 //     }
 //   };
 
-//   // Process voice command with current state values
+//   // ✅ Speech response function
+//   const speakResponse = (text: string) => {
+//     setIsAISpeaking(true);
+//     setAiResponse(text);
+//     Speech.speak(text, {
+//       language: "en-US",
+//       pitch: 1.0,
+//       rate: 0.85,
+//       onDone: () => setIsAISpeaking(false),
+//       onError: () => setIsAISpeaking(false),
+//     });
+//   };
+
+//   // ✅ Process voice command with imported command patterns
 //   const processVoiceCommand = useCallback(
 //     (transcript: string) => {
 //       console.log("🎙️ Processing command:", transcript);
@@ -223,128 +193,16 @@
 //       const lowerTranscript = transcript.toLowerCase();
 //       let commandFound = false;
 
-//       // Create command patterns with current state values
-//       const commandPatterns: CommandPattern[] = [
-//         // Lamp 1 commands
-//         {
-//           patterns: [/turn on lamp 1/i, /switch on lamp 1/i, /lamp 1 on/i],
-//           action: () => {
-//             dispatch(toggleRedLed());
-//             socket.emit("toggleRedLed", { redLedState: true });
-//             speakResponse("Lamp 1 turned on");
-//           },
-//         },
-//         {
-//           patterns: [/turn off lamp 1/i, /switch off lamp 1/i, /lamp 1 off/i],
-//           action: () => {
-//             dispatch(toggleRedLed());
-//             socket.emit("toggleRedLed", { redLedState: false });
-//             speakResponse("Lamp 1 turned off");
-//           },
-//         },
-//         // Lamp 2 commands
-//         {
-//           patterns: [/turn on lamp 2/i, /switch on lamp 2/i, /lamp 2 on/i],
-//           action: () => {
-//             dispatch(toggleYellowLed());
-//             socket.emit("toggleYellowLed", { yellowLedState: true });
-//             speakResponse("Lamp 2 turned on");
-//           },
-//         },
-//         {
-//           patterns: [/turn off lamp 2/i, /switch off lamp 2/i, /lamp 2 off/i],
-//           action: () => {
-//             dispatch(toggleYellowLed());
-//             socket.emit("toggleYellowLed", { yellowLedState: false });
-//             speakResponse("Lamp 2 turned off");
-//           },
-//         },
-//         // Fan commands
-//         {
-//           patterns: [/turn on fan/i, /start fan/i, /fan on/i, /start the fan/i],
-//           action: () => {
-//             dispatch(toggleGreenLed());
-//             socket.emit("toggleGreenLed", { greenLedState: true });
-//             speakResponse("Fan turned on");
-//           },
-//         },
-//         {
-//           patterns: [/turn off fan/i, /stop fan/i, /fan off/i, /stop the fan/i],
-//           action: () => {
-//             dispatch(toggleGreenLed());
-//             socket.emit("toggleGreenLed", { greenLedState: false });
-//             speakResponse("Fan turned off");
-//           },
-//         },
-//         // All lights commands
-//         {
-//           patterns: [
-//             /turn on everything/i,
-//             /all lights on/i,
-//             /turn on all lights/i,
-//             /everything on/i,
-//           ],
-//           action: () => {
-//             dispatch(toggleAllLights());
-//             socket.emit("toggleAllLights", { allLightsState: true });
-//             speakResponse("All devices turned on");
-//           },
-//         },
-//         {
-//           patterns: [
-//             /turn off everything/i,
-//             /all lights off/i,
-//             /turn off all lights/i,
-//             /everything off/i,
-//           ],
-//           action: () => {
-//             dispatch(toggleAllLights());
-//             socket.emit("toggleAllLights", { allLightsState: false });
-//             speakResponse("All devices turned off");
-//           },
-//         },
-//         // Information queries
-//         {
-//           patterns: [/what.*temperature/i, /how hot/i, /temperature/i],
-//           action: () => {
-//             speakResponse(
-//               `Current temperature is ${temperature} degrees celsius`
-//             );
-//           },
-//         },
-//         {
-//           patterns: [/humidity/i, /how humid/i, /moisture/i],
-//           action: () => {
-//             speakResponse(`Humidity level is ${humidity} percent`);
-//           },
-//         },
-//         {
-//           patterns: [/motion/i, /movement/i, /security/i, /any alerts/i],
-//           action: () => {
-//             const motionStatus = motionDetected
-//               ? `Motion detected at back door. ${motionAlerts.length} alerts total`
-//               : "No motion detected. All clear";
-//             speakResponse(motionStatus);
-//           },
-//         },
-//         // Smart commands
-//         {
-//           patterns: [/goodnight/i, /good night/i, /going to sleep/i],
-//           action: () => {
-//             dispatch(toggleAllLights());
-//             socket.emit("toggleAllLights", { allLightsState: false });
-//             speakResponse("Good night! Turning off all devices");
-//           },
-//         },
-//         {
-//           patterns: [/i'm home/i, /im home/i, /hello bruno/i],
-//           action: () => {
-//             dispatch(toggleYellowLed());
-//             socket.emit("toggleYellowLed", { yellowLedState: true });
-//             speakResponse("Welcome home! Turning on entry light");
-//           },
-//         },
-//       ];
+//       // ✅ Get command patterns from utils
+//       const commandPatterns = createVoiceCommands({
+//         dispatch,
+//         socket,
+//         temperature,
+//         humidity,
+//         motionDetected,
+//         motionAlerts,
+//         speakResponse,
+//       });
 
 //       // Check each command pattern
 //       for (const command of commandPatterns) {
@@ -361,21 +219,12 @@
 
 //       // If no command matched
 //       if (!commandFound) {
-//         speakResponse("I didn't understand that command");
+//         speakResponse(
+//           "I didn't understand that command. Try saying 'help' for available commands."
+//         );
 //       }
 //     },
-//     [
-//       temperature,
-//       humidity,
-//       redLedState,
-//       greenLedState,
-//       yellowLedState,
-//       allLightsState,
-//       motionDetected,
-//       motionAlerts,
-//       dispatch,
-//       socket,
-//     ]
+//     [temperature, humidity, motionDetected, motionAlerts, dispatch, socket]
 //   );
 
 //   // Animation functions
@@ -434,65 +283,134 @@
 //     }
 //   };
 
+//   // Add sound state
+//   const [buttonSound, setButtonSound] = useState<Audio.Sound | null>(null);
+
+//   // Load the sound effect on component mount
+//   useEffect(() => {
+//     const loadButtonSound = async () => {
+//       try {
+//         const { sound } = await Audio.Sound.createAsync(
+//           require("@/assets/brunosound.mp3")
+//         );
+//         setButtonSound(sound);
+//       } catch (error) {
+//         console.error("Error loading button sound:", error);
+//       }
+//     };
+
+//     loadButtonSound();
+
+//     // Cleanup function
+//     return () => {
+//       if (buttonSound) {
+//         buttonSound.unloadAsync();
+//       }
+//     };
+//   }, []);
+
+//   // Function to play the button sound
+//   const playButtonSound = async () => {
+//     try {
+//       if (buttonSound) {
+//         // Stop and reset the sound in case it's already playing
+//         await buttonSound.stopAsync();
+//         await buttonSound.setPositionAsync(0);
+//         await buttonSound.playAsync();
+//       }
+//     } catch (error) {
+//       console.error("Error playing button sound:", error);
+//     }
+//   };
+
+//   // ✅ FIXED startListening with proper timer
 //   const startListening = async () => {
 //     try {
 //       setUserText("Listening...");
+//       await playButtonSound();
+
 //       setIsListening(true);
 //       startPulseAnimation();
 
-//       // ✅ Use LOW_QUALITY preset for LINEAR16 compatibility (creates WAV files)
-//       const recordingOptions = Audio.RecordingOptionsPresets.LOW_QUALITY;
+//       const recordingOptions = Audio.RecordingOptionsPresets.HIGH_QUALITY;
 
 //       const { recording: newRecording } = await Audio.Recording.createAsync(
 //         recordingOptions
 //       );
 //       setRecording(newRecording);
 
-//       // ✅ Smart auto-stop: 3 seconds of silence OR 8 seconds max
-//       const silenceTimeout = setTimeout(() => {
-//         console.log("🔇 Silence detected - auto stopping...");
+//       // ✅ CRITICAL FIX: Use current recording state to avoid stale closure
+//       console.log("⏱️ Setting 3-second auto-stop timer...");
+//       autoStopTimer.current = setTimeout(async () => {
+//         console.log("⏱️ 3 seconds reached - auto-stopping...");
 //         setUserText("Auto-stopping...");
-//         stopListening();
-//       }, 3000); // Stop after 3 seconds of assumed silence
 
-//       const maxTimeout = setTimeout(() => {
-//         console.log("⏱️ Max recording time reached - stopping...");
-//         setUserText("Max time reached...");
-//         stopListening();
-//       }, 8000); // Maximum 8 seconds
+//         // ✅ Force stop the recording
+//         try {
+//           if (newRecording) {
+//             await newRecording.stopAndUnloadAsync();
+//             const uri = newRecording.getURI();
+//             setRecording(null);
+//             setIsListening(false);
+//             stopPulseAnimation();
 
-//       setSilenceTimer(silenceTimeout);
-//       setMaxRecordingTimer(maxTimeout);
+//             if (uri) {
+//               console.log("🔄 Processing auto-stopped recording...");
+//               setUserText("Processing...");
+//               const transcriptionResult = await transcribeWithGoogle(uri);
+//               setUserText(transcriptionResult);
 
-//       console.log("🎙️ Recording started (LINEAR16, auto-stop enabled)");
+//               if (transcriptionResult.trim()) {
+//                 processVoiceCommand(transcriptionResult);
+//               } else {
+//                 speakResponse("I didn't catch that. Please try again.");
+//               }
+
+//               try {
+//                 await FileSystem.deleteAsync(uri);
+//               } catch (cleanupError) {
+//                 console.warn(
+//                   "Could not clean up recording file:",
+//                   cleanupError
+//                 );
+//               }
+//             }
+//           }
+//         } catch (error) {
+//           console.error("Error in auto-stop:", error);
+//           setIsListening(false);
+//           stopPulseAnimation();
+//           speakResponse("Sorry, there was an error processing your request.");
+//         }
+
+//         // Clear timer
+//         autoStopTimer.current = null;
+//       }, 3000);
+
+//       console.log("🎙️ Recording started with 3-second auto-stop");
 //     } catch (error) {
 //       console.error("Error starting recording:", error);
 //       setIsListening(false);
 //       stopPulseAnimation();
-//       speakResponse(
-//         "Sorry, I couldn't start listening. Please check your microphone permissions."
-//       );
+//       speakResponse("Sorry, I couldn't start listening.");
 //     }
 //   };
 
+//   // ✅ Simplified stopListening (for manual stop only)
 //   const stopListening = async () => {
 //     try {
 //       if (!recording) return;
 
-//       console.log("🛑 Stopping recording");
+//       console.log("🛑 Manual stop requested");
+
+//       // Clear auto-stop timer if it exists
+//       if (autoStopTimer.current) {
+//         clearTimeout(autoStopTimer.current);
+//         autoStopTimer.current = null;
+//       }
+
 //       setIsListening(false);
 //       stopPulseAnimation();
-
-//       // Clear timers
-//       if (silenceTimer) {
-//         clearTimeout(silenceTimer);
-//         setSilenceTimer(null);
-//       }
-//       if (maxRecordingTimer) {
-//         clearTimeout(maxRecordingTimer);
-//         setMaxRecordingTimer(null);
-//       }
-
 //       setUserText("Processing...");
 
 //       await recording.stopAndUnloadAsync();
@@ -500,17 +418,15 @@
 //       setRecording(null);
 
 //       if (uri) {
-//         // Transcribe with Google Speech API (LINEAR16)
-//         const transcript = await transcribeWithGoogle(uri);
-//         setUserText(transcript);
+//         const transcriptionResult = await transcribeWithGoogle(uri);
+//         setUserText(transcriptionResult);
 
-//         if (transcript.trim()) {
-//           processVoiceCommand(transcript);
+//         if (transcriptionResult.trim()) {
+//           processVoiceCommand(transcriptionResult);
 //         } else {
-//           speakResponse("I didn't catch that. Please try again.");
+//           speakResponse("I didn't catch that.");
 //         }
 
-//         // Clean up the temporary file
 //         try {
 //           await FileSystem.deleteAsync(uri);
 //         } catch (cleanupError) {
@@ -518,27 +434,11 @@
 //         }
 //       }
 //     } catch (error) {
-//       console.error("Error stopping recording or transcribing:", error);
+//       console.error("Error stopping recording:", error);
 //       setIsListening(false);
 //       stopPulseAnimation();
-//       if (silenceTimer) clearTimeout(silenceTimer);
-//       if (maxRecordingTimer) clearTimeout(maxRecordingTimer);
-//       speakResponse(
-//         "Sorry, I couldn't process your request. Please try again."
-//       );
+//       speakResponse("Sorry, I couldn't process your request.");
 //     }
-//   };
-
-//   const speakResponse = (text: string) => {
-//     setIsAISpeaking(true);
-//     setAiResponse(text);
-//     Speech.speak(text, {
-//       language: "en-US",
-//       pitch: 1.0,
-//       rate: 0.85,
-//       onDone: () => setIsAISpeaking(false),
-//       onError: () => setIsAISpeaking(false),
-//     });
 //   };
 
 //   // Animated styles
@@ -594,14 +494,14 @@
 //         <View className="flex-col h-full justify-center gap-4 items-center flex-1">
 //           {(isListening || isTranscribing) && (
 //             <Text className="text-white text-sm">
-//               {isTranscribing ? userText : "Listening... (tap to stop)"}
+//               {isTranscribing ? userText : "Listening... (3s auto-stop)"}
 //             </Text>
 //           )}
 
 //           {/* Voice Status */}
 //           {!isListening && !isTranscribing && (
 //             <Text className="text-white text-sm leading-5">
-//               {aiResponse.slice(0, 40)}
+//               {aiResponse.slice(0, 100)}
 //             </Text>
 //           )}
 //         </View>
