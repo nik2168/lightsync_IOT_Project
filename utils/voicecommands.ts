@@ -41,6 +41,8 @@ export const createVoiceCommands = ({
       /lamp 1 on/i,
       /enable lamp 1/i,
       /activate lamp 1/i,
+      /turn on the lamp 1/i,
+      /turn on the lamp one/i,
       // Numbers as words
       /turn on lamp one/i,
       /switch on lamp one/i,
@@ -75,12 +77,14 @@ export const createVoiceCommands = ({
       /lamp 1 off/i,
       /disable lamp 1/i,
       /deactivate lamp 1/i,
+      /turn off the lamp 1/i,
       // Numbers as words
       /turn off lamp one/i,
       /switch off lamp one/i,
       /lamp one off/i,
       /disable lamp one/i,
       /deactivate lamp one/i,
+      /turn off the lamp one/i,
       // Alternative phrasings
       /turn the first lamp off/i,
       /switch the first lamp off/i,
@@ -111,12 +115,14 @@ export const createVoiceCommands = ({
       /lamp 2 on/i,
       /enable lamp 2/i,
       /activate lamp 2/i,
+      /turn on the lamp 2/i,
       // Numbers as words
       /turn on lamp two/i,
       /switch on lamp two/i,
       /lamp two on/i,
       /enable lamp two/i,
       /activate lamp two/i,
+      /turn on the lamp two/i,
       // Alternative phrasings
       /turn the second lamp on/i,
       /switch the second lamp on/i,
@@ -141,6 +147,7 @@ export const createVoiceCommands = ({
     patterns: [
       // Numbers as digits
       /turn off lamp 2/i,
+      /turn off the lamp 2/i,
       /switch off lamp 2/i,
       /lamp 2 off/i,
       /disable lamp 2/i,
@@ -151,6 +158,7 @@ export const createVoiceCommands = ({
       /lamp two off/i,
       /disable lamp two/i,
       /deactivate lamp two/i,
+      /turn off the lamp two/i,
       // Alternative phrasings
       /turn the second lamp off/i,
       /switch the second lamp off/i,
@@ -178,6 +186,7 @@ export const createVoiceCommands = ({
       // Basic fan commands
       /turn on fan/i,
       /switch on fan/i,
+      /turn on the fan/i,
       /fan on/i,
       /start fan/i,
       /start the fan/i,
@@ -209,6 +218,7 @@ export const createVoiceCommands = ({
       // Basic fan commands
       /turn off fan/i,
       /switch off fan/i,
+      /turn off the fan/i,
       /fan off/i,
       /stop fan/i,
       /stop the fan/i,
@@ -243,6 +253,8 @@ export const createVoiceCommands = ({
       /turn on everything/i,
       /switch on everything/i,
       /everything on/i,
+      /turn on all devices/i,
+      /turn all device on/i,
       /all on/i,
       /all devices on/i,
       /turn on all/i,
@@ -278,6 +290,8 @@ export const createVoiceCommands = ({
       // Everything off
       /turn off everything/i,
       /switch off everything/i,
+      /turn off all devices/i,
+      /turn all devices off/i,
       /everything off/i,
       /all off/i,
       /all devices off/i,
