@@ -57,6 +57,12 @@
 //   const [hasPermission, setHasPermission] = useState(false);
 //   const [recording, setRecording] = useState<Audio.Recording | null>(null);
 
+//   // Sound state for button effect
+//   const [buttonSound, setButtonSound] = useState<Audio.Sound | null>(null);
+
+//   // ✅ NEW: Add speaking state tracking
+//   const [currentSpeechId, setCurrentSpeechId] = useState<string | null>(null);
+
 //   // ✅ Use useRef for timer to persist across re-renders
 //   const autoStopTimer = useRef<NodeJS.Timeout | null>(null);
 
@@ -64,6 +70,24 @@
 //   const scale = useSharedValue(1);
 //   const pulseValue = useSharedValue(1);
 //   const glowOpacity = useSharedValue(0);
+
+//   // Load button sound effect
+//   useEffect(() => {
+//     const loadButtonSound = async () => {
+//       try {
+//         const { sound } = await Audio.Sound.createAsync(
+//           require("@/assets/brunosound.mp3")
+//         );
+//         setButtonSound(sound);
+//       } catch (error) {
+//         console.error("Error loading button sound:", error);
+//       }
+//     };
+//     loadButtonSound();
+//     return () => {
+//       if (buttonSound) buttonSound.unloadAsync();
+//     };
+//   }, []);
 
 //   // Initialize audio permissions
 //   useEffect(() => {
@@ -80,11 +104,8 @@
 //           );
 //         }
 
-//         // Configure audio mode for recording
-//         await Audio.setAudioModeAsync({
-//           allowsRecordingIOS: true,
-//           playsInSilentModeIOS: true,
-//         });
+//         // Start in playback mode
+//         await setPlaybackMode();
 //       } catch (error) {
 //         console.error("Error initializing audio:", error);
 //         setHasPermission(false);
@@ -94,15 +115,51 @@
 //     initializeAudio();
 //   }, []);
 
-//   // ✅ Cleanup timer on unmount
+//   // ✅ Enhanced cleanup on unmount
 //   useEffect(() => {
 //     return () => {
+//       // Stop any ongoing speech when component unmounts
+//       if (isAISpeaking) {
+//         Speech.stop();
+//       }
 //       if (autoStopTimer.current) {
 //         clearTimeout(autoStopTimer.current);
 //         autoStopTimer.current = null;
 //       }
 //     };
 //   }, []);
+
+//   // Utility: Switch to playback mode for speaker
+//   const setPlaybackMode = async () => {
+//     await Audio.setAudioModeAsync({
+//       allowsRecordingIOS: false, // Fix: disables earpiece on playback
+//       playsInSilentModeIOS: true,
+//       staysActiveInBackground: false,
+//     });
+//   };
+
+//   // Utility: Switch to recording mode for recording
+//   const setRecordingMode = async () => {
+//     await Audio.setAudioModeAsync({
+//       allowsRecordingIOS: true, // needed for mic
+//       playsInSilentModeIOS: true,
+//       staysActiveInBackground: false,
+//     });
+//   };
+
+//   // Play sound effect
+//   const playButtonSound = async () => {
+//     try {
+//       await setPlaybackMode();
+//       if (buttonSound) {
+//         await buttonSound.stopAsync();
+//         await buttonSound.setPositionAsync(0);
+//         await buttonSound.playAsync();
+//       }
+//     } catch (error) {
+//       console.error("Error playing button sound:", error);
+//     }
+//   };
 
 //   // ✅ Process voice command using Google Speech-to-Text API
 //   const transcribeWithGoogle = async (audioUri: string): Promise<string> => {
@@ -112,7 +169,6 @@
 
 //     try {
 //       setIsTranscribing(true);
-//       setUserText("Converting audio...");
 
 //       console.log("🎙️ Processing audio with Google Speech API");
 
@@ -125,14 +181,13 @@
 //         config: {
 //           encoding: "WEBM_OPUS",
 //           sampleRateHertz: 48000,
-//           languageCode: "en-US",
+//           languageCode: "en-IN", // ⬅️ CHANGE: Primary language to English (India)
+//           alternativeLanguageCodes: ["hi-IN"], // ⬅️ CHANGE: Alternative to Hindi (India)
 //           enableAutomaticPunctuation: true,
 //           model: "latest_short",
 //           audioChannelCount: 1,
 //         },
-//         audio: {
-//           content: base64Audio,
-//         },
+//         audio: { content: base64Audio },
 //       };
 
 //       const response = await fetch(
@@ -157,6 +212,8 @@
 //         data.results?.[0]?.alternatives?.[0]?.transcript || "";
 
 //       console.log("📝 Transcription Result:", transcriptionResult);
+//       setUserText(transcriptionResult.trim());
+
 //       return transcriptionResult.trim();
 //     } catch (error) {
 //       console.error("Google Speech transcription error:", error);
@@ -166,17 +223,58 @@
 //     }
 //   };
 
-//   // ✅ Speech response function
+//   // ✅ ENHANCED: Speech response function with interruption handling
 //   const speakResponse = (text: string) => {
+//     // Generate unique ID for this speech instance
+//     const speechId = Date.now().toString();
+
+//     console.log("🗣️ Starting speech:", speechId, text.slice(0, 30));
+
 //     setIsAISpeaking(true);
 //     setAiResponse(text);
+//     setCurrentSpeechId(speechId);
+
 //     Speech.speak(text, {
 //       language: "en-US",
 //       pitch: 1.0,
 //       rate: 0.85,
-//       onDone: () => setIsAISpeaking(false),
-//       onError: () => setIsAISpeaking(false),
+//       onStart: () => {
+//         console.log("🎤 Speech started:", speechId);
+//       },
+//       onDone: () => {
+//         console.log("✅ Speech completed:", speechId);
+//         // Only update state if this is still the current speech
+//         if (currentSpeechId === speechId) {
+//           setIsAISpeaking(false);
+//           setCurrentSpeechId(null);
+//         }
+//       },
+//       onError: (error) => {
+//         console.error("❌ Speech error:", error);
+//         setIsAISpeaking(false);
+//         setCurrentSpeechId(null);
+//       },
+//       onStopped: () => {
+//         console.log("🛑 Speech stopped/interrupted:", speechId);
+//         setIsAISpeaking(false);
+//         setCurrentSpeechId(null);
+//       },
 //     });
+//   };
+
+//   // ✅ NEW: Function to stop current speech
+//   const stopCurrentSpeech = async () => {
+//     if (isAISpeaking || currentSpeechId) {
+//       console.log("🛑 Stopping current speech:", currentSpeechId);
+//       try {
+//         await Speech.stop(); // Interrupts current speech and clears queue
+//         setIsAISpeaking(false);
+//         setCurrentSpeechId(null);
+//         setAiResponse("Listening..."); // Update UI immediately
+//       } catch (error) {
+//         console.error("Error stopping speech:", error);
+//       }
+//     }
 //   };
 
 //   // ✅ Process voice command with imported command patterns
@@ -208,8 +306,7 @@
 //       for (const command of commandPatterns) {
 //         for (const pattern of command.patterns) {
 //           if (pattern.test(lowerTranscript)) {
-//             console.log("✅ Command matched:", pattern);
-//             command.action();
+//             command.action(lowerTranscript); // Pass transcript here
 //             commandFound = true;
 //             break;
 //           }
@@ -256,8 +353,8 @@
 //     glowOpacity.value = withTiming(0, { duration: 300 });
 //   };
 
-//   // Voice interaction handlers
-//   const handleVoiceInteraction = () => {
+//   // ✅ ENHANCED: Handle voice interaction with speech interruption
+//   const handleVoiceInteraction = async () => {
 //     if (!hasPermission) {
 //       Alert.alert(
 //         "Permissions Required",
@@ -276,6 +373,15 @@
 //       return;
 //     }
 
+//     // ✅ CRITICAL: Stop any current speech before starting new interaction
+//     if (isAISpeaking) {
+//       console.log("🛑 Interrupting current speech to start new interaction");
+//       await stopCurrentSpeech();
+//     }
+
+//     // Play button sound after stopping speech
+//     await playButtonSound();
+
 //     if (isListening) {
 //       stopListening();
 //     } else {
@@ -283,52 +389,14 @@
 //     }
 //   };
 
-//   // Add sound state
-//   const [buttonSound, setButtonSound] = useState<Audio.Sound | null>(null);
-
-//   // Load the sound effect on component mount
-//   useEffect(() => {
-//     const loadButtonSound = async () => {
-//       try {
-//         const { sound } = await Audio.Sound.createAsync(
-//           require("@/assets/brunosound.mp3")
-//         );
-//         setButtonSound(sound);
-//       } catch (error) {
-//         console.error("Error loading button sound:", error);
-//       }
-//     };
-
-//     loadButtonSound();
-
-//     // Cleanup function
-//     return () => {
-//       if (buttonSound) {
-//         buttonSound.unloadAsync();
-//       }
-//     };
-//   }, []);
-
-//   // Function to play the button sound
-//   const playButtonSound = async () => {
-//     try {
-//       if (buttonSound) {
-//         // Stop and reset the sound in case it's already playing
-//         await buttonSound.stopAsync();
-//         await buttonSound.setPositionAsync(0);
-//         await buttonSound.playAsync();
-//       }
-//     } catch (error) {
-//       console.error("Error playing button sound:", error);
-//     }
-//   };
-
-//   // ✅ FIXED startListening with proper timer
+//   // ✅ ENHANCED: Start listening with speech interruption
 //   const startListening = async () => {
 //     try {
-//       setUserText("Listening...");
-//       await playButtonSound();
+//       // Stop any ongoing speech before starting to listen
+//       await stopCurrentSpeech();
 
+//       await setRecordingMode();
+//       setUserText("Listening...");
 //       setIsListening(true);
 //       startPulseAnimation();
 
@@ -343,7 +411,7 @@
 //       console.log("⏱️ Setting 3-second auto-stop timer...");
 //       autoStopTimer.current = setTimeout(async () => {
 //         console.log("⏱️ 3 seconds reached - auto-stopping...");
-//         setUserText("Auto-stopping...");
+//         // setUserText("Auto-stopping...");
 
 //         // ✅ Force stop the recording
 //         try {
@@ -356,7 +424,7 @@
 
 //             if (uri) {
 //               console.log("🔄 Processing auto-stopped recording...");
-//               setUserText("Processing...");
+//               // setUserText("Processing...");
 //               const transcriptionResult = await transcribeWithGoogle(uri);
 //               setUserText(transcriptionResult);
 
@@ -383,7 +451,8 @@
 //           speakResponse("Sorry, there was an error processing your request.");
 //         }
 
-//         // Clear timer
+//         // Switch back to playback mode after recording
+//         await setPlaybackMode();
 //         autoStopTimer.current = null;
 //       }, 3000);
 
@@ -393,6 +462,7 @@
 //       setIsListening(false);
 //       stopPulseAnimation();
 //       speakResponse("Sorry, I couldn't start listening.");
+//       await setPlaybackMode();
 //     }
 //   };
 
@@ -424,7 +494,7 @@
 //         if (transcriptionResult.trim()) {
 //           processVoiceCommand(transcriptionResult);
 //         } else {
-//           speakResponse("I didn't catch that.");
+//           speakResponse("I didn't catch that. Please try again.");
 //         }
 
 //         try {
@@ -439,6 +509,8 @@
 //       stopPulseAnimation();
 //       speakResponse("Sorry, I couldn't process your request.");
 //     }
+//     // Switch back to playback mode after recording stops
+//     await setPlaybackMode();
 //   };
 
 //   // Animated styles
@@ -494,15 +566,17 @@
 //         <View className="flex-col h-full justify-center gap-4 items-center flex-1">
 //           {(isListening || isTranscribing) && (
 //             <Text className="text-white text-sm">
-//               {isTranscribing ? userText : "Listening... (3s auto-stop)"}
+//               {isTranscribing ? userText : "Listening..."}
 //             </Text>
 //           )}
 
 //           {/* Voice Status */}
 //           {!isListening && !isTranscribing && (
-//             <Text className="text-white text-sm leading-5">
-//               {aiResponse.slice(0, 100)}
-//             </Text>
+//             <View className="items-center">
+//               <Text className="text-white text-sm leading-5">
+//                 {aiResponse.slice(0, 40)}
+//               </Text>
+//             </View>
 //           )}
 //         </View>
 //       </View>

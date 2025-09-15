@@ -4,7 +4,7 @@ import * as FileSystem from "expo-file-system";
 import { Image } from "expo-image";
 import * as Speech from "expo-speech";
 import React, { useCallback, useEffect, useRef, useState } from "react";
-import { Alert, Text, TouchableOpacity, View } from "react-native";
+import { Alert, Switch, Text, TouchableOpacity, View } from "react-native";
 import Animated, {
   cancelAnimation,
   useAnimatedStyle,
@@ -21,6 +21,7 @@ import { getSocket } from "@/redux/socket";
 
 // ✅ Import voice commands from utils
 import { createVoiceCommands } from "@/utils/voicecommands";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
 
 const Bruno = () => {
   const dispatch = useAppDispatch();
@@ -56,12 +57,11 @@ const Bruno = () => {
   const [isAISpeaking, setIsAISpeaking] = useState(false);
   const [hasPermission, setHasPermission] = useState(false);
   const [recording, setRecording] = useState<Audio.Recording | null>(null);
-
-  // Sound state for button effect
   const [buttonSound, setButtonSound] = useState<Audio.Sound | null>(null);
-
-  // ✅ NEW: Add speaking state tracking
   const [currentSpeechId, setCurrentSpeechId] = useState<string | null>(null);
+
+  // ✅ NEW: Language toggle state
+  const [selectedLanguage, setSelectedLanguage] = useState<"en" | "hi">("en");
 
   // ✅ Use useRef for timer to persist across re-renders
   const autoStopTimer = useRef<NodeJS.Timeout | null>(null);
@@ -161,7 +161,7 @@ const Bruno = () => {
     }
   };
 
-  // ✅ Process voice command using Google Speech-to-Text API
+  // ✅ Process voice command using Google Speech-to-Text API with language toggle
   const transcribeWithGoogle = async (audioUri: string): Promise<string> => {
     if (!GOOGLE_SPEECH_API_KEY) {
       throw new Error("Google Speech API key not found");
@@ -169,8 +169,6 @@ const Bruno = () => {
 
     try {
       setIsTranscribing(true);
-      setUserText("Converting audio...");
-
       console.log("🎙️ Processing audio with Google Speech API");
 
       // Convert audio to base64
@@ -178,18 +176,19 @@ const Bruno = () => {
         encoding: FileSystem.EncodingType.Base64,
       });
 
+      // ✅ Use selectedLanguage for speech recognition
+      const languageCode = selectedLanguage === "hi" ? "hi-IN" : "en-IN";
+
       const requestBody = {
         config: {
           encoding: "WEBM_OPUS",
           sampleRateHertz: 48000,
-          languageCode: "en-US",
+          languageCode,
           enableAutomaticPunctuation: true,
           model: "latest_short",
           audioChannelCount: 1,
         },
-        audio: {
-          content: base64Audio,
-        },
+        audio: { content: base64Audio },
       };
 
       const response = await fetch(
@@ -214,6 +213,8 @@ const Bruno = () => {
         data.results?.[0]?.alternatives?.[0]?.transcript || "";
 
       console.log("📝 Transcription Result:", transcriptionResult);
+      setUserText(transcriptionResult.trim());
+
       return transcriptionResult.trim();
     } catch (error) {
       console.error("Google Speech transcription error:", error);
@@ -223,7 +224,7 @@ const Bruno = () => {
     }
   };
 
-  // ✅ ENHANCED: Speech response function with interruption handling
+  // ✅ ENHANCED: Speech response function with language toggle support
   const speakResponse = (text: string) => {
     // Generate unique ID for this speech instance
     const speechId = Date.now().toString();
@@ -234,8 +235,11 @@ const Bruno = () => {
     setAiResponse(text);
     setCurrentSpeechId(speechId);
 
+    // ✅ Use selectedLanguage for speech synthesis
+    const speechLang = selectedLanguage === "hi" ? "hi-IN" : "en-US";
+
     Speech.speak(text, {
-      language: "en-US",
+      language: speechLang,
       pitch: 1.0,
       rate: 0.85,
       onStart: () => {
@@ -307,7 +311,7 @@ const Bruno = () => {
         for (const pattern of command.patterns) {
           if (pattern.test(lowerTranscript)) {
             console.log("✅ Command matched:", pattern);
-            command.action();
+            command.action(lowerTranscript); // Pass transcript here
             commandFound = true;
             break;
           }
@@ -412,7 +416,6 @@ const Bruno = () => {
       console.log("⏱️ Setting 3-second auto-stop timer...");
       autoStopTimer.current = setTimeout(async () => {
         console.log("⏱️ 3 seconds reached - auto-stopping...");
-        setUserText("Auto-stopping...");
 
         // ✅ Force stop the recording
         try {
@@ -425,7 +428,6 @@ const Bruno = () => {
 
             if (uri) {
               console.log("🔄 Processing auto-stopped recording...");
-              setUserText("Processing...");
               const transcriptionResult = await transcribeWithGoogle(uri);
               setUserText(transcriptionResult);
 
@@ -530,6 +532,13 @@ const Bruno = () => {
     scale.value = withSpring(1, { damping: 15, stiffness: 300 });
   };
 
+  const handleLanguageChange = async () => {
+    setSelectedLanguage((pre) => {
+      return pre === "hi" ? "en" : "hi";
+    });
+    await playButtonSound();
+  };
+
   // Don't render if API key is missing
   if (!GOOGLE_SPEECH_API_KEY) {
     return (
@@ -545,29 +554,55 @@ const Bruno = () => {
   }
 
   return (
-    <View className="bg-white flex-1 shadow-xs rounded-3xl overflow-hidden">
+    <View className="bg-white flex-1 relative shadow-xs rounded-3xl overflow-hidden">
+      <TouchableOpacity
+        onPress={() => handleLanguageChange()}
+        className={`w-8 h-8 absolute z-10 bottom-3 right-3 rounded-lg items-center justify-center ${
+          selectedLanguage === "hi" ? "bg-blue-500" : "bg-gray-300"
+        }`}
+      >
+        {/* <MaterialCommunityIcons name="power" size={26} color="white" /> */}
+        <Text>{selectedLanguage}</Text>
+      </TouchableOpacity>
       <View className="flex-row justify-around gap-6 items-start bg-black p-4 py-9 rounded-xl">
-        <TouchableOpacity
-          className="flex-row items-center justify-between rounded-xl relative"
-          onPress={handleVoiceInteraction}
-          onPressIn={handlePressIn}
-          onPressOut={handlePressOut}
-          activeOpacity={0.8}
-        >
-          <Animated.View style={gifAnimatedStyle}>
-            <Image
-              source={require("@/assets/bruno.gif")}
-              style={{ width: 150, height: 150 }}
-              className="bg-blend-multiply rounded-xl"
+        <View className="flex-col justify-center items-center relative space-y-4">
+          {/* ✅ Language Toggle UI */}
+          {/* <View className="flex-row items-center space-x-2 mb-2">
+            <Text className="text-white text-xs">English</Text>
+            <Switch
+              value={selectedLanguage === "hi"}
+              onValueChange={(value) =>
+                setSelectedLanguage(value ? "hi" : "en")
+              }
+              trackColor={{ false: "#767577", true: "#81b0ff" }}
+              thumbColor={selectedLanguage === "hi" ? "#f5dd4b" : "#f4f3f4"}
+              ios_backgroundColor="#3e3e3e"
             />
-          </Animated.View>
-        </TouchableOpacity>
+            <Text className="text-white text-xs">हिंदी</Text>
+          </View> */}
+
+          <TouchableOpacity
+            className="flex-row items-center justify-between rounded-xl relative"
+            onPress={handleVoiceInteraction}
+            onPressIn={handlePressIn}
+            onPressOut={handlePressOut}
+            activeOpacity={0.8}
+          >
+            <Animated.View style={gifAnimatedStyle}>
+              <Image
+                source={require("@/assets/bruno.gif")}
+                style={{ width: 150, height: 150 }}
+                className="bg-blend-multiply rounded-xl"
+              />
+            </Animated.View>
+          </TouchableOpacity>
+        </View>
 
         {/* Right Side - Conversation Display */}
         <View className="flex-col h-full justify-center gap-4 items-center flex-1">
           {(isListening || isTranscribing) && (
             <Text className="text-white text-sm">
-              {isTranscribing ? userText : "Listening... (3s auto-stop)"}
+              {isTranscribing ? userText : "Listening..."}
             </Text>
           )}
 
@@ -577,12 +612,6 @@ const Bruno = () => {
               <Text className="text-white text-sm leading-5">
                 {aiResponse.slice(0, 40)}
               </Text>
-              {/* ✅ NEW: Visual indicator when AI is speaking
-              {isAISpeaking && (
-                <Text className="text-blue-300 text-xs mt-1">
-                  🗣️ Speaking... (tap to interrupt)
-                </Text>
-              )} */}
             </View>
           )}
         </View>
